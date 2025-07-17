@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, Download, Calendar, TrendingUp, TrendingDown, Users, Mail, Zap, AlertCircle, CheckCircle } from 'lucide-react';
+import { CreditCard, Download, TrendingUp, TrendingDown, Users, Mail, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 

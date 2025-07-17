@@ -6,6 +6,8 @@ import { BulkActions } from '../../components/candidates/BulkActions';
 import { CandidateUploadModal } from '../../components/candidates/CandidateUploadModal';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useFilters } from '../../contexts/FilterContext';
+import { supabase } from '../../lib/supabaseClient';
+
 
 export const CandidatesPage: React.FC = () => {
   const { addNotification } = useNotification();
