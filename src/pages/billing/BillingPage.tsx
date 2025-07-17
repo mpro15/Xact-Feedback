@@ -10,7 +10,7 @@ export const BillingPage: React.FC = () => {
 
   // Mock data for credits and billing
   const creditMetrics = {
-    totalCredits: 1000,
+    totalCredits: 55000,
     usedCredits: 347,
     remainingCredits: 653,
     monthlyAllowance: 1000,
