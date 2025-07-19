@@ -1,20 +1,59 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Eye, Mail, FileText, Send, Download, BarChart3 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { supabase } from '../../lib/supabaseClient';
 
 export const PreviewSettings: React.FC = () => {
-  const { primaryColor, secondaryColor, companyName } = useTheme();
+  const { primaryColor, companyName } = useTheme();
   const { addNotification } = useNotification();
   const [previewType, setPreviewType] = useState<'email' | 'pdf'>('email');
   const [downloadCount, setDownloadCount] = useState(0);
+  const [candidate, setCandidate] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const mockCandidate = {
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@email.com',
-    position: 'Senior Frontend Developer',
-    rejectionStage: 'Technical Interview'
-  };
+  useEffect(() => {
+    async function fetchCandidate() {
+      setLoading(true);
+      setError(null);
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.company_id) {
+        setError('No company found');
+        setLoading(false);
+        return;
+      }
+      // Fetch a candidate for preview
+      const { data: candidates, error: candidateError } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (candidateError) {
+        setError(candidateError.message);
+        setLoading(false);
+        return;
+      }
+      setCandidate(candidates && candidates[0] ? candidates[0] : null);
+      setLoading(false);
+    }
+    fetchCandidate();
+  }, []);
+
+  if (loading) return <div className="p-4">Loading preview...</div>;
+  if (error) return <div className="p-4 text-red-600">{error}</div>;
 
   const renderEmailPreview = () => (
     <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-2xl">
@@ -27,15 +66,15 @@ export const PreviewSettings: React.FC = () => {
           <span className="text-sm text-gray-500">hr@{companyName.toLowerCase().replace(/\s+/g, '')}.com</span>
         </div>
         <h3 className="text-lg font-medium text-gray-900">
-          Thank you for your application - {mockCandidate.name}
+          Thank you for your application - {candidate.name}
         </h3>
       </div>
 
       <div className="prose prose-sm max-w-none">
-        <p>Dear {mockCandidate.name},</p>
+        <p>Dear {candidate.name},</p>
         
         <p>
-          Thank you for your interest in the <strong>{mockCandidate.position}</strong> position at {companyName}. 
+          Thank you for your interest in the <strong>{candidate.position}</strong> position at {companyName}. 
           While we were impressed with your background and experience, we have decided to move forward with another candidate.
         </p>
 
@@ -47,10 +86,13 @@ export const PreviewSettings: React.FC = () => {
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 my-4">
           <h4 className="font-medium text-gray-900 mb-2">Your Feedback Highlights:</h4>
           <ul className="text-sm text-gray-600 space-y-1">
-            <li>• Strong technical skills in React and TypeScript</li>
-            <li>• Excellent problem-solving approach</li>
-            <li>• Room for improvement in system design concepts</li>
-            <li>• Consider exploring backend technologies</li>
+            {candidate.feedback_highlights?.length ? (
+              candidate.feedback_highlights.map((highlight: string, index: number) => (
+                <li key={index}>• {highlight}</li>
+              ))
+            ) : (
+              <li>• No feedback highlights available</li>
+            )}
           </ul>
         </div>
 
@@ -109,52 +151,58 @@ export const PreviewSettings: React.FC = () => {
         <div className="bg-gray-50 rounded-lg p-4">
           <h3 className="font-medium text-gray-900 mb-2">Application Summary</h3>
           <div className="text-sm text-gray-600 space-y-1">
-            <p><strong>Candidate:</strong> {mockCandidate.name}</p>
-            <p><strong>Position:</strong> {mockCandidate.position}</p>
-            <p><strong>Rejection Stage:</strong> {mockCandidate.rejectionStage}</p>
-            <p><strong>Date:</strong> January 15, 2024</p>
+            <p><strong>Candidate:</strong> {candidate.name}</p>
+            <p><strong>Position:</strong> {candidate.position}</p>
+            <p><strong>Rejection Stage:</strong> {candidate.rejection_stage}</p>
+            <p><strong>Date:</strong> {new Date(candidate.created_at).toLocaleDateString()}</p>
           </div>
         </div>
 
         <div>
           <h3 className="font-medium text-gray-900 mb-3">Strengths Identified</h3>
           <ul className="text-sm text-gray-600 space-y-1">
-            <li>• Strong technical foundation in frontend development</li>
-            <li>• Excellent communication and presentation skills</li>
-            <li>• Good understanding of modern JavaScript frameworks</li>
-            <li>• Positive attitude and eagerness to learn</li>
+            {candidate.strengths?.length ? (
+              candidate.strengths.map((strength: string, index: number) => (
+                <li key={index}>• {strength}</li>
+              ))
+            ) : (
+              <li>• No strengths identified</li>
+            )}
           </ul>
         </div>
 
         <div>
           <h3 className="font-medium text-gray-900 mb-3">Areas for Improvement</h3>
           <ul className="text-sm text-gray-600 space-y-1">
-            <li>• System design and architecture concepts</li>
-            <li>• Experience with large-scale applications</li>
-            <li>• Backend development knowledge</li>
-            <li>• Database design and optimization</li>
+            {candidate.areas_for_improvement?.length ? (
+              candidate.areas_for_improvement.map((area: string, index: number) => (
+                <li key={index}>• {area}</li>
+              ))
+            ) : (
+              <li>• No areas for improvement identified</li>
+            )}
           </ul>
         </div>
 
         <div>
           <h3 className="font-medium text-gray-900 mb-3">Recommended Learning Path</h3>
           <div className="space-y-3">
-            <div className="border border-gray-200 rounded-lg p-3">
-              <h4 className="font-medium text-gray-900">System Design Fundamentals</h4>
-              <p className="text-sm text-gray-600">Grokking the System Design - educative.io</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Free</span>
-                <span className="text-xs text-gray-500">4.5 ⭐ • 40 hours</span>
-              </div>
-            </div>
-            <div className="border border-gray-200 rounded-lg p-3">
-              <h4 className="font-medium text-gray-900">Advanced React Patterns</h4>
-              <p className="text-sm text-gray-600">Advanced React - Frontend Masters</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Paid</span>
-                <span className="text-xs text-gray-500">4.8 ⭐ • 6 hours</span>
-              </div>
-            </div>
+            {candidate.course_recommendations?.length ? (
+              candidate.course_recommendations.map((course: any, index: number) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-3">
+                  <h4 className="font-medium text-gray-900">{course.title}</h4>
+                  <p className="text-sm text-gray-600">{course.provider}</p>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className={`text-xs ${course.free ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded`}>
+                      {course.free ? 'Free' : 'Paid'}
+                    </span>
+                    <span className="text-xs text-gray-500">{course.rating} ⭐ • {course.duration}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-gray-600">No course recommendations available</div>
+            )}
           </div>
         </div>
 

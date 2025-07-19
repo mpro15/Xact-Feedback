@@ -1,45 +1,50 @@
-import React from 'react';
-import { TrendingUp, Mail, Eye, MousePointer, Users, ArrowUp, ArrowDown } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Mail, Eye, MousePointer, Users } from 'lucide-react';
 import { MetricCard } from '../../components/analytics/MetricCard';
 import { EngagementChart } from '../../components/analytics/EngagementChart';
 import { PerformanceTable } from '../../components/analytics/PerformanceTable';
 import { WorldMap } from '../../components/analytics/WorldMap';
+import { supabase } from '../../lib/supabaseClient';
+
+type FunnelType = Record<string, number>;
 
 export const AnalyticsPage: React.FC = () => {
-  const metrics = [
-    {
-      title: 'Email Open Rate',
-      value: '67.3%',
-      change: '+5.2%',
-      trend: 'up' as const,
-      icon: Eye,
-      color: 'blue'
-    },
-    {
-      title: 'Click-through Rate',
-      value: '23.8%',
-      change: '+2.1%',
-      trend: 'up' as const,
-      icon: MousePointer,
-      color: 'green'
-    },
-    {
-      title: 'Course Enrollments',
-      value: '342',
-      change: '+18%',
-      trend: 'up' as const,
-      icon: TrendingUp,
-      color: 'purple'
-    },
-    {
-      title: 'Re-applications',
-      value: '156',
-      change: '+23%',
-      trend: 'up' as const,
-      icon: Users,
-      color: 'orange'
+  const [stats, setStats] = useState({
+    totalSent: 0,
+    openRate: 0,
+    clickRate: 0,
+    funnel: {} as FunnelType,
+  });
+
+  useEffect(() => {
+    async function fetchStats() {
+      // Total sent
+      const sentRes = await supabase.from('email_campaigns').select('id', { count: 'exact', head: true });
+      const totalSent = sentRes.count || 0;
+      // Open rate
+      const openRes = await supabase.from('email_campaigns').select('id', { count: 'exact', head: true }).not('opened_at', 'is', null);
+      const opened = openRes.count || 0;
+      // Click rate
+      const clickRes = await supabase.from('email_campaigns').select('id', { count: 'exact', head: true }).not('clicked_at', 'is', null);
+      const clicked = clickRes.count || 0;
+      // Funnel data
+      const funnelRes = await supabase.from('candidates').select('rejection_stage');
+      const funnel: FunnelType = {};
+      if (funnelRes.data) {
+        funnelRes.data.forEach((row: any) => {
+          const stage = row.rejection_stage || 'Unknown';
+          funnel[stage] = (funnel[stage] || 0) + 1;
+        });
+      }
+      setStats({
+        totalSent,
+        openRate: totalSent ? (opened / totalSent) * 100 : 0,
+        clickRate: totalSent ? (clicked / totalSent) * 100 : 0,
+        funnel,
+      });
     }
-  ];
+    fetchStats();
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -50,16 +55,17 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metrics.map((metric, index) => (
-          <MetricCard key={index} {...metric} />
-        ))}
+        <MetricCard title="Total Sent" value={stats.totalSent.toString()} icon={Mail} color="blue" change="" trend="up" />
+        <MetricCard title="Open Rate" value={stats.openRate.toFixed(1) + '%'} icon={Eye} color="green" change="" trend="up" />
+        <MetricCard title="Click Rate" value={stats.clickRate.toFixed(1) + '%'} icon={MousePointer} color="purple" change="" trend="up" />
+        <MetricCard title="Candidates" value={Object.values(stats.funnel).reduce((a: number, b: number) => a + b, 0).toString()} icon={Users} color="orange" change="" trend="up" />
       </div>
 
       {/* Charts Grid */}
       <div className="space-y-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <EngagementChart />
+            <EngagementChart />
             <div className="space-y-6">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>

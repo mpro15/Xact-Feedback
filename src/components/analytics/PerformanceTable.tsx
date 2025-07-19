@@ -1,52 +1,81 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowUp, ArrowDown, Download, Filter } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
+import { supabase } from '../../lib/supabaseClient';
 
 export const PerformanceTable: React.FC = () => {
   const { addNotification } = useNotification();
-  
-  const performanceData = [
-    {
-      stage: 'Resume Screening',
-      candidates: 1247,
-      feedbackSent: 892,
-      openRate: 72.3,
-      clickRate: 28.4,
-      enrollmentRate: 12.1,
-      reApplicationRate: 8.3,
-      trend: 'up'
-    },
-    {
-      stage: 'Phone Screen',
-      candidates: 456,
-      feedbackSent: 389,
-      openRate: 68.9,
-      clickRate: 31.2,
-      enrollmentRate: 15.6,
-      reApplicationRate: 12.4,
-      trend: 'up'
-    },
-    {
-      stage: 'Technical Interview',
-      candidates: 234,
-      feedbackSent: 198,
-      openRate: 65.1,
-      clickRate: 24.7,
-      enrollmentRate: 18.3,
-      reApplicationRate: 15.7,
-      trend: 'down'
-    },
-    {
-      stage: 'Final Interview',
-      candidates: 89,
-      feedbackSent: 76,
-      openRate: 78.9,
-      clickRate: 42.1,
-      enrollmentRate: 26.7,
-      reApplicationRate: 22.1,
-      trend: 'up'
+  const [performanceData, setPerformanceData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchPerformanceData() {
+      setLoading(true);
+      setError(null);
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.company_id) {
+        setError('No company found');
+        setLoading(false);
+        return;
+      }
+      // Fetch all candidates for aggregation
+      const { data: candidates, error: candidateError } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('company_id', profile.company_id);
+      if (candidateError) {
+        setError(candidateError.message);
+        setLoading(false);
+        return;
+      }
+      // Aggregate performance by rejection_stage
+      const stageMap: Record<string, any> = {};
+      candidates.forEach(c => {
+        const stage = c.rejection_stage || 'Unknown';
+        if (!stageMap[stage]) {
+          stageMap[stage] = {
+            stage,
+            candidates: 0,
+            feedbackSent: 0,
+            openRate: 0,
+            clickRate: 0,
+            enrollmentRate: 0,
+            reApplicationRate: 0,
+          };
+        }
+        stageMap[stage].candidates++;
+        if (c.feedback_status === 'sent') stageMap[stage].feedbackSent++;
+        stageMap[stage].openRate += c.email_opens || 0;
+        stageMap[stage].clickRate += c.email_clicks || 0;
+        stageMap[stage].enrollmentRate += c.course_enrollments || 0;
+        stageMap[stage].reApplicationRate += c.reapplied ? 1 : 0;
+      });
+      // Calculate averages
+      const result = Object.values(stageMap).map(row => ({
+        ...row,
+        openRate: row.candidates ? (row.openRate / row.candidates) : 0,
+        clickRate: row.candidates ? (row.clickRate / row.candidates) : 0,
+        enrollmentRate: row.candidates ? (row.enrollmentRate / row.candidates) : 0,
+        reApplicationRate: row.candidates ? (row.reApplicationRate / row.candidates) * 100 : 0,
+        trend: row.feedbackSent > row.candidates / 2 ? 'up' : 'down',
+      }));
+      setPerformanceData(result);
+      setLoading(false);
     }
-  ];
+    fetchPerformanceData();
+  }, []);
 
   const handleRowClick = (stage: string) => {
     addNotification({
@@ -58,7 +87,7 @@ export const PerformanceTable: React.FC = () => {
 
   const handleExport = () => {
     const csvContent = performanceData.map(row => 
-      `${row.stage},${row.candidates},${row.feedbackSent},${row.openRate},${row.clickRate},${row.enrollmentRate},${row.reApplicationRate}`
+      `${row.rejection_stage},${row.candidates},${row.feedbackSent},${row.openRate},${row.clickRate},${row.enrollmentRate},${row.reApplicationRate}`
     ).join('\n');
     
     const blob = new Blob([
@@ -78,6 +107,10 @@ export const PerformanceTable: React.FC = () => {
       message: 'Performance data has been exported successfully'
     });
   };
+
+  if (loading) return <div className="p-4">Loading performance data...</div>;
+  if (error) return <div className="p-4 text-red-600">{error}</div>;
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -136,7 +169,7 @@ export const PerformanceTable: React.FC = () => {
                 className="hover:bg-gray-50 cursor-pointer"
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {row.stage}
+                  {row.rejection_stage}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {row.candidates.toLocaleString()}

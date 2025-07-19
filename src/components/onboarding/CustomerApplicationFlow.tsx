@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Building, Users, CreditCard, Check, ArrowRight, X } from 'lucide-react';
+import { Building, Users, CreditCard, Check, ArrowRight, X } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { supabase } from '../../lib/supabaseClient';
 
 interface CustomerApplication {
   id: string;
@@ -25,32 +26,36 @@ export const CustomerApplicationFlow: React.FC<CustomerApplicationFlowProps> = (
   const { addNotification } = useNotification();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [applications, setApplications] = useState<CustomerApplication[]>([
-    {
-      id: '1',
-      companyName: 'TechStart Solutions',
-      domain: 'techstart.com',
-      adminName: 'Sarah Wilson',
-      adminEmail: 'sarah@techstart.com',
-      phone: '+1-555-0199',
-      employees: '50-100',
-      plan: 'professional',
-      status: 'pending',
-      createdAt: '2024-01-20'
-    },
-    {
-      id: '2',
-      companyName: 'Global Innovations Ltd',
-      domain: 'globalinnovations.com',
-      adminName: 'Michael Chen',
-      adminEmail: 'michael@globalinnovations.com',
-      phone: '+1-555-0188',
-      employees: '200-500',
-      plan: 'enterprise',
-      status: 'approved',
-      createdAt: '2024-01-19'
+  const [applications, setApplications] = useState<CustomerApplication[]>([]);
+
+  React.useEffect(() => {
+    async function fetchApplications() {
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.company_id) {
+        return;
+      }
+      // Fetch customer applications for company
+      const { data: apps, error: appError } = await supabase
+        .from('customer_applications')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .order('created_at', { ascending: false });
+      if (appError) {
+        return;
+      }
+      setApplications(apps || []);
     }
-  ]);
+    if (isOpen) fetchApplications();
+  }, [isOpen]);
 
   const [formData, setFormData] = useState({
     companyName: '',

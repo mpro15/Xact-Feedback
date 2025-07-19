@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Palette, Settings, Shield, Zap, Eye } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 import { BrandingEmailSettings } from '../../components/settings/BrandingEmailSettings';
 import { BehaviorSettings } from '../../components/settings/BehaviorSettings';
 import { PrivacySettings } from '../../components/settings/PrivacySettings';
@@ -8,6 +9,57 @@ import { PreviewSettings } from '../../components/settings/PreviewSettings';
 
 export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('branding-email');
+  const [company, setCompany] = useState<any>(null);
+  const [form, setForm] = useState({
+    name: '',
+    logo_url: '',
+    email_limit: 0,
+    auto_send: false,
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    async function fetchCompany() {
+      const userRes = await supabase.auth.getUser();
+      const user = userRes.data.user;
+      if (!user) return;
+      const profileRes = await supabase.from('users').select('company_id').eq('id', user.id).single();
+      const companyId = profileRes.data?.company_id;
+      if (!companyId) return;
+      const { data } = await supabase.from('companies').select('*').eq('id', companyId).single();
+      if (data) {
+        setCompany(data);
+        setForm({
+          name: data.name || '',
+          logo_url: data.logo_url || '',
+          email_limit: data.email_limit || 0,
+          auto_send: !!data.auto_send,
+        });
+      }
+    }
+    fetchCompany();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setForm(f => ({
+      ...f,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!company) return;
+    setSaving(true);
+    await supabase.from('companies').update({
+      name: form.name,
+      logo_url: form.logo_url,
+      email_limit: form.email_limit,
+      auto_send: form.auto_send,
+    }).eq('id', company.id);
+    setSaving(false);
+  };
 
   const tabs = [
     { id: 'branding-email', label: 'Branding & Email', icon: Palette },
@@ -40,7 +92,6 @@ export const SettingsPage: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Settings</h1>
         <p className="text-gray-600">Configure your feedback platform preferences</p>
       </div>
-
       <div className="neumorphic-card">
         {/* Tabs */}
         <div className="border-b border-shadow/20">
@@ -61,9 +112,28 @@ export const SettingsPage: React.FC = () => {
             ))}
           </nav>
         </div>
-
         {/* Content */}
         <div className="p-4 sm:p-6">
+          {/* Company Settings Form */}
+          <form onSubmit={handleSubmit} className="space-y-6 max-w-lg mx-auto">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Company Name</label>
+              <input name="name" value={form.name} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Logo URL</label>
+              <input name="logo_url" value={form.logo_url} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email Limit</label>
+              <input name="email_limit" type="number" value={form.email_limit} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div className="flex items-center">
+              <input name="auto_send" type="checkbox" checked={form.auto_send} onChange={handleChange} className="mr-2" />
+              <label className="text-sm font-medium text-gray-700">Auto-send Feedback</label>
+            </div>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded" disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</button>
+          </form>
           {renderTabContent()}
         </div>
       </div>

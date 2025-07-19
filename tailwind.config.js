@@ -29,19 +29,19 @@ export default {
         neumorphic: {
           light: '#ffffff',
           dark: '#e0e0e0',
-        }
+        },
       },
       boxShadow: {
-        'neumorphic': '8px 8px 16px theme(colors.shadow.DEFAULT), -8px -8px 16px theme(colors.neumorphic.light)',
-        'neumorphic-inset': 'inset 8px 8px 16px theme(colors.shadow.DEFAULT), inset -8px -8px 16px theme(colors.neumorphic.light)',
-        'neumorphic-sm': '4px 4px 8px theme(colors.shadow.DEFAULT), -4px -4px 8px theme(colors.neumorphic.light)',
-        'neumorphic-lg': '12px 12px 24px theme(colors.shadow.DEFAULT), -12px -12px 24px theme(colors.neumorphic.light)',
-        'neumorphic-hover': '6px 6px 12px rgba(0,0,0,0.1), -6px -6px 12px theme(colors.neumorphic.light)',
+        neumorphic: '8px 8px 16px #e0e0e0, -8px -8px 16px #ffffff',
+        'neumorphic-inset': 'inset 8px 8px 16px #e0e0e0, inset -8px -8px 16px #ffffff',
+        'neumorphic-sm': '4px 4px 8px #e0e0e0, -4px -4px 8px #ffffff',
+        'neumorphic-lg': '12px 12px 24px #e0e0e0, -12px -12px 24px #ffffff',
+        'neumorphic-hover': '6px 6px 12px rgba(0, 0, 0, 0.05), -6px -6px 12px #ffffff',
       },
       backgroundImage: {
         'neumorphic-gradient': 'linear-gradient(145deg, #ffffff, #f1f3f5)',
         'neumorphic-gradient-reverse': 'linear-gradient(145deg, #f1f3f5, #ffffff)',
-      }
+      },
     },
   },
   plugins: [],

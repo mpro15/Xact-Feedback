@@ -1,41 +1,82 @@
-import React, { useState } from 'react';
-import { Globe, Filter, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Globe, Download } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
 export const WorldMap: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [countryData, setCountryData] = useState<any[]>([]);
+  const [cityData, setCityData] = useState<Record<string, any[]>>({});
+  const [totalCandidates, setTotalCandidates] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const countryData = [
-    { name: 'United States', candidates: 1247, percentage: 45.8, intensity: 100, lat: 39.8283, lng: -98.5795 },
-    { name: 'United Kingdom', candidates: 456, percentage: 16.7, intensity: 37, lat: 55.3781, lng: -3.4360 },
-    { name: 'Canada', candidates: 234, percentage: 8.6, intensity: 19, lat: 56.1304, lng: -106.3468 },
-    { name: 'Australia', candidates: 189, percentage: 6.9, intensity: 15, lat: -25.2744, lng: 133.7751 },
-    { name: 'Germany', candidates: 156, percentage: 5.7, intensity: 13, lat: 51.1657, lng: 10.4515 },
-    { name: 'France', candidates: 123, percentage: 4.5, intensity: 10, lat: 46.2276, lng: 2.2137 },
-    { name: 'India', candidates: 98, percentage: 3.6, intensity: 8, lat: 20.5937, lng: 78.9629 },
-    { name: 'Netherlands', candidates: 67, percentage: 2.5, intensity: 5, lat: 52.1326, lng: 5.2913 }
-  ];
-
-  const cityData = {
-    'United States': [
-      { name: 'New York', candidates: 345, percentage: 27.7, lat: 40.7128, lng: -74.0060 },
-      { name: 'San Francisco', candidates: 298, percentage: 23.9, lat: 37.7749, lng: -122.4194 },
-      { name: 'Los Angeles', candidates: 234, percentage: 18.8, lat: 34.0522, lng: -118.2437 },
-      { name: 'Chicago', candidates: 189, percentage: 15.2, lat: 41.8781, lng: -87.6298 },
-      { name: 'Boston', candidates: 181, percentage: 14.5, lat: 42.3601, lng: -71.0589 }
-    ],
-    'United Kingdom': [
-      { name: 'London', candidates: 298, percentage: 65.4, lat: 51.5074, lng: -0.1278 },
-      { name: 'Manchester', candidates: 67, percentage: 14.7, lat: 53.4808, lng: -2.2426 },
-      { name: 'Birmingham', candidates: 45, percentage: 9.9, lat: 52.4862, lng: -1.8904 },
-      { name: 'Edinburgh', candidates: 46, percentage: 10.1, lat: 55.9533, lng: -3.1883 }
-    ],
-    'Canada': [
-      { name: 'Toronto', candidates: 123, percentage: 52.6, lat: 43.6532, lng: -79.3832 },
-      { name: 'Vancouver', candidates: 67, percentage: 28.6, lat: 49.2827, lng: -123.1207 },
-      { name: 'Montreal', candidates: 44, percentage: 18.8, lat: 45.5017, lng: -73.5673 }
-    ]
-  };
+  useEffect(() => {
+    async function fetchLocationData() {
+      setLoading(true);
+      setError(null);
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.company_id) {
+        setError('No company found');
+        setLoading(false);
+        return;
+      }
+      // Fetch all candidates for aggregation
+      const { data: candidates, error: candidateError } = await supabase
+        .from('candidates')
+        .select('country,city')
+        .eq('company_id', profile.company_id);
+      if (candidateError) {
+        setError(candidateError.message);
+        setLoading(false);
+        return;
+      }
+      // Aggregate country and city data
+      const countryMap: Record<string, { name: string; candidates: number; cities: Record<string, number>; } > = {};
+      let total = 0;
+      candidates.forEach((c: any) => {
+        const country = c.country || 'Unknown';
+        const city = c.city || 'Unknown';
+        if (!countryMap[country]) {
+          countryMap[country] = { name: country, candidates: 0, cities: {} };
+        }
+        countryMap[country].candidates++;
+        countryMap[country].cities[city] = (countryMap[country].cities[city] || 0) + 1;
+        total++;
+      });
+      // Format countryData and cityData
+      const countryArr = Object.values(countryMap).map((country) => ({
+        name: country.name,
+        candidates: country.candidates,
+        percentage: total ? ((country.candidates / total) * 100).toFixed(1) : 0,
+        intensity: country.candidates, // Use raw count for heatmap
+      }));
+      const cityObj: Record<string, any[]> = {};
+      Object.values(countryMap).forEach((country) => {
+        cityObj[country.name] = Object.entries(country.cities).map(([city, count]) => ({
+          name: city,
+          candidates: count,
+          percentage: country.candidates ? ((count / country.candidates) * 100).toFixed(1) : 0,
+        }));
+      });
+      setCountryData(countryArr);
+      setCityData(cityObj);
+      setTotalCandidates(total);
+      setLoading(false);
+    }
+    fetchLocationData();
+  }, []);
 
   const getIntensityColor = (intensity: number) => {
     if (intensity >= 80) return 'from-primary-700 to-primary-500';
@@ -73,6 +114,9 @@ export const WorldMap: React.FC = () => {
     a.click();
     window.URL.revokeObjectURL(url);
   };
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="neumorphic-chart">
@@ -219,7 +263,7 @@ export const WorldMap: React.FC = () => {
       <div className="mt-6 pt-4 border-t border-shadow/20">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600 font-medium">Total Candidates</span>
-          <span className="font-bold text-gray-800">2,727</span>
+          <span className="font-bold text-gray-800">{totalCandidates.toLocaleString()}</span>
         </div>
       </div>
     </div>
