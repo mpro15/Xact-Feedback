@@ -1,28 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Eye, FileText, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { supabase } from '../../lib/supabaseClient';
 
 export const EmailPreview: React.FC = () => {
-  const { primaryColor, secondaryColor, companyName } = useTheme();
+  const { primaryColor, companyName } = useTheme();
   const [previewType, setPreviewType] = useState<'email' | 'pdf'>('email');
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [candidate, setCandidate] = useState<any | null>(null);
 
-  const mockCandidate = {
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@email.com',
-    position: 'Senior Frontend Developer',
-    rejectionStage: 'Technical Interview'
-  };
+  useEffect(() => {
+    async function fetchCandidate() {
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        setPdfError(true);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.company_id) {
+        setPdfError(true);
+        return;
+      }
+      // Fetch a candidate for preview
+      const { data: candidates, error: candidateError } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (candidateError) {
+        setPdfError(true);
+        return;
+      }
+      setCandidate(candidates && candidates[0] ? candidates[0] : null);
+    }
+    fetchCandidate();
+  }, []);
 
   const handlePdfLoad = () => {
     setPdfLoaded(true);
     setPdfError(false);
-  };
-
-  const handlePdfError = () => {
-    setPdfError(true);
-    setPdfLoaded(false);
   };
 
   const renderEmailPreview = () => (
@@ -37,25 +60,28 @@ export const EmailPreview: React.FC = () => {
             <span className="text-sm text-gray-500">hr@{companyName.toLowerCase().replace(/\s+/g, '')}.com</span>
           </div>
           <h3 className="text-lg font-medium text-gray-900">
-            Thank you for your application - {mockCandidate.name}
+            Thank you for your application - {candidate?.name}
           </h3>
         </div>
 
         <div className="prose prose-sm max-w-none">
-          <p>Dear {mockCandidate.name},</p>
+          <p>Dear {candidate?.name},</p>
           
           <p>
-            Thank you for your interest in the <strong>{mockCandidate.position}</strong> position at {companyName}. 
+            Thank you for your interest in the <strong>{candidate?.position}</strong> position at {companyName}. 
             While we were impressed with your background and experience, we have decided to move forward with another candidate.
           </p>
 
           <div className="neumorphic-card p-4 my-4 bg-primary-50">
             <h4 className="font-medium text-primary-900 mb-2">Your Feedback Highlights:</h4>
             <ul className="text-sm text-primary-800 space-y-1">
-              <li>• Strong technical skills in React and TypeScript</li>
-              <li>• Excellent problem-solving approach</li>
-              <li>• Room for improvement in system design concepts</li>
-              <li>• Consider exploring backend technologies</li>
+              {candidate?.feedback_highlights?.length > 0 ? (
+                candidate.feedback_highlights.map((highlight: string, index: number) => (
+                  <li key={index}>• {highlight}</li>
+                ))
+              ) : (
+                <li>• No feedback highlights available</li>
+              )}
             </ul>
           </div>
 

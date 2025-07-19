@@ -1,17 +1,40 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
 import { Clock } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
+export const ProtectedRoute: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [subscriptionActive, setSubscriptionActive] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  useEffect(() => {
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+      setIsAuthenticated(true);
+      // Fetch company subscription status
+      const { data: profile } = await supabase.from('users').select('company_id').eq('id', user.id).single();
+      if (!profile?.company_id) {
+        setSubscriptionActive(false);
+        setLoading(false);
+        return;
+      }
+      const { data: company } = await supabase.from('companies').select('subscription_active').eq('id', profile.company_id).single();
+      setSubscriptionActive(!!company?.subscription_active);
+      setLoading(false);
+    }
+    checkAuth();
+  }, []);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner size="large" />
@@ -19,7 +42,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
@@ -49,5 +72,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  return <>{children}</>;
+  // Payment enforcement
+  if (!subscriptionActive) {
+    return <Navigate to="/payment-pending" replace />;
+  }
+
+  return <Outlet />;
 };

@@ -1,11 +1,11 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'npm:@supabase/supabase-js@2'
-import { SMTPClient } from 'npm:emailjs@3.2.0'
+import { serve } from 'https://deno.land/x/supabase_functions@0.5.0/mod.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SMTPClient } from 'npm:emailjs@3.2.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 interface EmailRequest {
   candidate_id: string;
@@ -20,18 +20,18 @@ interface EmailRequest {
   tracking_id?: string;
 }
 
-serve(async (req) => {
+export default serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     // Parse request body
-    const emailRequest: EmailRequest = await req.json()
+    const emailRequest: EmailRequest = await req.json();
     
     // Validate required fields
     if (!emailRequest.candidate_id || !emailRequest.company_id || !emailRequest.to_email) {
-      throw new Error('Missing required fields')
+      throw new Error('Missing required fields');
     }
 
     // Initialize Supabase client

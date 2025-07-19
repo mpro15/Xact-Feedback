@@ -1,13 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+// Remove Supabase client initialization from this file
+// import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Supabase client is now only exported from supabaseClient.ts
+// export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types
 export interface Company {

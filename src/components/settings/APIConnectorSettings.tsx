@@ -1,57 +1,67 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Save, RefreshCw, CheckCircle, XCircle, Key, Globe, Info } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
+import { supabase } from '../../lib/supabaseClient';
 
 export const APIConnectorSettings: React.FC = () => {
   const { addNotification } = useNotification();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('ats');
+  const [atsIntegrations, setAtsIntegrations] = useState<any[]>([]);
+  const [learningIntegrations, setLearningIntegrations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // ATS Integrations
-  const [atsIntegrations, setAtsIntegrations] = useState([
-    {
-      id: 'workday',
-      name: 'Workday',
-      description: 'Enterprise HR and recruitment platform',
-      icon: '🏢',
-      connected: true,
-      apiKey: 'sk_test_••••••••••••••••',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/workday',
-      lastSync: '2024-01-15 10:30 AM'
-    },
-    {
-      id: 'greenhouse',
-      name: 'Greenhouse',
-      description: 'Hiring and recruitment optimization platform',
-      icon: '🌱',
-      connected: false,
-      apiKey: '',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/greenhouse',
-      lastSync: 'Never'
-    },
-    {
-      id: 'icims',
-      name: 'iCIMS',
-      description: 'Talent cloud recruitment platform',
-      icon: '☁️',
-      connected: true,
-      apiKey: 'api_••••••••••••••••',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/icims',
-      lastSync: '2024-01-15 09:15 AM'
+  useEffect(() => {
+    async function fetchIntegrations() {
+      setLoading(true);
+      setError(null);
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.company_id) {
+        setError('No company found');
+        setLoading(false);
+        return;
+      }
+      // Fetch ATS integrations
+      const { data: ats, error: atsError } = await supabase
+        .from('ats_integrations')
+        .select('*')
+        .eq('company_id', profile.company_id);
+      if (atsError) {
+        setError(atsError.message);
+        setLoading(false);
+        return;
+      }
+      setAtsIntegrations(ats || []);
+      // Fetch learning platform integrations
+      const { data: learning, error: learningError } = await supabase
+        .from('learning_integrations')
+        .select('*')
+        .eq('company_id', profile.company_id);
+      if (learningError) {
+        setError(learningError.message);
+        setLoading(false);
+        return;
+      }
+      setLearningIntegrations(learning || []);
+      setLoading(false);
     }
-  ]);
+    fetchIntegrations();
+  }, []);
 
-  // Learning Platform Integrations
-  const [learningIntegrations, setLearningIntegrations] = useState({
-    coursera: { enabled: true, apiKey: 'sk_••••••••••••••••', connected: true },
-    udemy: { enabled: true, apiKey: '', connected: false },
-    edx: { enabled: true, apiKey: 'edx_••••••••••••••••', connected: true },
-    pluralsight: { enabled: false, apiKey: '', connected: false },
-    linkedin: { enabled: true, apiKey: '', connected: false },
-    freecodecamp: { enabled: true, apiKey: 'N/A (Free)', connected: true },
-    codecademy: { enabled: false, apiKey: '', connected: false },
-    upgrad: { enabled: true, apiKey: 'up_••••••••••••••••', connected: true }
-  });
+  if (loading) return <div className="p-4">Loading integrations...</div>;
+  if (error) return <div className="p-4 text-red-600">{error}</div>;
 
   const platformInfo = {
     coursera: { name: 'Coursera', description: 'University courses and professional certificates', icon: '📚' },

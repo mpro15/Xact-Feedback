@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Download, Filter, Calendar, Search } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
 interface MetricDataModalProps {
   isOpen: boolean;
@@ -21,28 +22,51 @@ export const MetricDataModal: React.FC<MetricDataModalProps> = ({
   const [dateRange, setDateRange] = useState('last-30-days');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchMetricData() {
+      setLoading(true);
+      setError(null);
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.company_id) {
+        setError('No company found');
+        setLoading(false);
+        return;
+      }
+      // Fetch candidate metrics for company
+      const { data: candidates, error: candidateError } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .order('created_at', { ascending: false });
+      if (candidateError) {
+        setError(candidateError.message);
+        setLoading(false);
+        return;
+      }
+      setData(candidates || []);
+      setLoading(false);
+    }
+    if (isOpen) fetchMetricData();
+  }, [isOpen]);
 
   if (!isOpen) return null;
-
-  // Mock data based on metric type
-  const generateMockData = () => {
-    const baseData = [];
-    for (let i = 0; i < 50; i++) {
-      const candidate = {
-        id: i + 1,
-        name: `Candidate ${i + 1}`,
-        email: `candidate${i + 1}@email.com`,
-        position: ['Frontend Developer', 'Backend Developer', 'Product Manager', 'UX Designer'][i % 4],
-        date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        status: ['Opened', 'Clicked', 'Enrolled', 'Bounced'][Math.floor(Math.random() * 4)],
-        stage: ['Resume Screening', 'Phone Screen', 'Technical Interview', 'Final Interview'][i % 4]
-      };
-      baseData.push(candidate);
-    }
-    return baseData;
-  };
-
-  const data = generateMockData();
+  if (loading) return <div className="p-4">Loading metrics...</div>;
+  if (error) return <div className="p-4 text-red-600">{error}</div>;
 
   const handleExport = () => {
     const csvContent = data.map(row => 

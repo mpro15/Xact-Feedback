@@ -6,9 +6,13 @@
   * {
     @apply transition-all duration-200;
   }
-  
-  body {
-    @apply antialiased bg-gray-50 text-gray-800;
+
+  html, body {
+    @apply antialiased bg-gray-50 text-gray-800 min-h-screen;
+  }
+
+  input, textarea, button, select {
+    @apply focus:outline-none;
   }
 }
 
@@ -17,136 +21,136 @@
   .neumorphic-card {
     @apply bg-white rounded-2xl shadow-neumorphic hover:shadow-neumorphic-hover transform hover:scale-[1.01] transition-all duration-300;
   }
-  
+
   /* Neumorphic Button */
   .neumorphic-btn {
     @apply bg-white rounded-xl shadow-neumorphic hover:shadow-neumorphic-hover active:shadow-neumorphic-inset transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 font-medium;
   }
-  
+
   .neumorphic-btn-primary {
     @apply bg-primary-500 text-white rounded-xl shadow-neumorphic hover:shadow-neumorphic-hover hover:bg-primary-600 active:shadow-neumorphic-inset transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 font-medium;
   }
-  
-  /* Neumorphic Input */
+
+  /* Input */
   .neumorphic-input {
-    @apply bg-white border-0 rounded-xl shadow-neumorphic-inset focus:shadow-neumorphic-hover focus:outline-none focus:ring-2 focus:ring-primary-500/30 px-4 py-3 transition-all duration-300;
+    @apply bg-white border-0 rounded-xl shadow-neumorphic-inset focus:shadow-neumorphic-hover focus:ring-2 focus:ring-primary-500/30 px-4 py-3 transition-all duration-300;
   }
-  
-  /* Neumorphic Modal */
+
+  /* Modal */
   .neumorphic-modal {
-    @apply bg-white rounded-3xl shadow-neumorphic-lg border-0;
+    @apply bg-white rounded-3xl shadow-neumorphic-lg border-0 p-6;
   }
-  
-  /* Neumorphic Sidebar */
+
+  /* Sidebar */
   .neumorphic-sidebar {
     @apply bg-white shadow-neumorphic-lg border-0;
   }
-  
-  /* Neumorphic Header */
+
+  /* Header */
   .neumorphic-header {
-    @apply bg-white shadow-neumorphic border-0;
+    @apply bg-white shadow-neumorphic border-0 p-4;
   }
-  
-  /* Neumorphic Chart Container */
+
+  /* Charts */
   .neumorphic-chart {
     @apply bg-white rounded-2xl shadow-neumorphic p-6;
   }
-  
-  /* Neumorphic Metric Card */
+
+  /* Metrics */
   .neumorphic-metric {
     @apply bg-white rounded-2xl shadow-neumorphic hover:shadow-neumorphic-hover cursor-pointer transform hover:scale-[1.02] transition-all duration-300 p-6;
   }
-  
-  /* Neumorphic Progress Bar */
+
+  /* Progress Bar */
   .neumorphic-progress {
     @apply bg-gray-100 rounded-full shadow-neumorphic-inset overflow-hidden;
   }
-  
+
   .neumorphic-progress-fill {
     @apply bg-gradient-to-r from-primary-400 to-primary-600 rounded-full shadow-neumorphic-sm transition-all duration-500;
   }
-  
-  /* Neumorphic Tab */
+
+  /* Tabs */
   .neumorphic-tab {
     @apply bg-white rounded-xl shadow-neumorphic hover:shadow-neumorphic-hover transition-all duration-200 px-4 py-2 font-medium;
   }
-  
+
   .neumorphic-tab-active {
     @apply bg-primary-500 text-white shadow-neumorphic-inset;
   }
-  
-  /* Neumorphic Badge */
+
+  /* Badges */
   .neumorphic-badge {
     @apply bg-white rounded-full shadow-neumorphic px-3 py-1 text-sm font-medium;
   }
-  
-  /* Neumorphic Notification */
+
+  /* Notification */
   .neumorphic-notification {
-    @apply bg-white rounded-2xl shadow-neumorphic-lg border-0 backdrop-blur-sm;
+    @apply bg-white rounded-2xl shadow-neumorphic-lg border-0 backdrop-blur-sm p-4;
   }
-  
-  /* Neumorphic Table */
+
+  /* Table */
   .neumorphic-table {
     @apply bg-white rounded-2xl shadow-neumorphic overflow-hidden;
   }
-  
+
   .neumorphic-table-header {
-    @apply bg-gradient-to-r from-gray-50 to-gray-100;
+    @apply bg-gradient-to-r from-gray-50 to-gray-100 text-sm font-semibold text-gray-700 uppercase tracking-wider;
   }
-  
+
   .neumorphic-table-row {
     @apply hover:bg-gray-50 transition-colors duration-200;
   }
-  
-  /* Neumorphic Search */
+
+  /* Search */
   .neumorphic-search {
-    @apply bg-white rounded-xl shadow-neumorphic-inset focus-within:shadow-neumorphic-hover transition-all duration-300;
+    @apply bg-white rounded-xl shadow-neumorphic-inset focus-within:shadow-neumorphic-hover transition-all duration-300 relative;
   }
-  
-  /* Neumorphic Dropdown */
+
+  /* Dropdown */
   .neumorphic-dropdown {
     @apply bg-white rounded-xl shadow-neumorphic-lg border-0 overflow-hidden;
   }
-  
-  /* Neumorphic Chart Bar */
+
+  /* Chart Bar */
   .neumorphic-chart-bar {
     @apply rounded-t-lg shadow-neumorphic-sm transition-all duration-500 hover:shadow-neumorphic;
   }
-  
-  /* Neumorphic World Map */
+
+  /* World Map */
   .neumorphic-world-map {
     @apply bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-neumorphic-inset p-8 relative overflow-hidden;
   }
-  
-  /* Neumorphic Heatmap Point */
+
+  /* Heatmap Point */
   .neumorphic-heatmap-point {
     @apply rounded-full shadow-neumorphic hover:shadow-neumorphic-hover cursor-pointer transform hover:scale-110 transition-all duration-300 animate-pulse;
   }
-  
-  /* Neumorphic Form Group */
+
+  /* Form Group */
   .neumorphic-form-group {
     @apply space-y-2;
   }
-  
+
   .neumorphic-label {
     @apply text-gray-700 font-medium text-sm;
   }
-  
-  /* Neumorphic Stats */
+
+  /* Stats */
   .neumorphic-stat {
     @apply bg-white rounded-xl shadow-neumorphic p-4 text-center;
   }
-  
-  /* Neumorphic Toggle */
+
+  /* Toggle */
   .neumorphic-toggle {
-    @apply bg-gray-200 rounded-full shadow-neumorphic-inset relative transition-all duration-300;
+    @apply bg-gray-200 rounded-full shadow-neumorphic-inset relative transition-all duration-300 w-12 h-6;
   }
-  
+
   .neumorphic-toggle-active {
     @apply bg-primary-500 shadow-neumorphic;
   }
-  
+
   .neumorphic-toggle-thumb {
-    @apply bg-white rounded-full shadow-neumorphic-sm transform transition-all duration-300;
+    @apply bg-white w-5 h-5 rounded-full shadow-neumorphic-sm absolute top-0.5 left-0.5 transition-transform duration-300;
   }
 }

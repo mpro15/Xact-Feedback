@@ -1,73 +1,54 @@
-import React, { useState } from 'react';
-import { CheckCircle, XCircle, Settings, RefreshCw, Key } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle, XCircle, RefreshCw, Key } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
+import { supabase } from '../../lib/supabaseClient';
 
 export const ATSIntegrations: React.FC = () => {
   const { addNotification } = useNotification();
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [integrations, setIntegrations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [integrations, setIntegrations] = useState([
-    {
-      id: 'workday',
-      name: 'Workday',
-      description: 'Enterprise HR and recruitment platform',
-      icon: '🏢',
-      connected: true,
-      apiKey: '••••••••••••••••',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/workday',
-      lastSync: '2024-01-15 10:30 AM'
-    },
-    {
-      id: 'greenhouse',
-      name: 'Greenhouse',
-      description: 'Hiring and recruitment optimization platform',
-      icon: '🌱',
-      connected: false,
-      apiKey: '',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/greenhouse',
-      lastSync: 'Never'
-    },
-    {
-      id: 'icims',
-      name: 'iCIMS',
-      description: 'Talent cloud recruitment platform',
-      icon: '☁️',
-      connected: true,
-      apiKey: '••••••••••••••••',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/icims',
-      lastSync: '2024-01-15 09:15 AM'
-    },
-    {
-      id: 'lever',
-      name: 'Lever',
-      description: 'Modern recruiting and talent management',
-      icon: '⚡',
-      connected: false,
-      apiKey: '',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/lever',
-      lastSync: 'Never'
-    },
-    {
-      id: 'bamboohr',
-      name: 'BambooHR',
-      description: 'HR platform for small and medium businesses',
-      icon: '🎋',
-      connected: true,
-      apiKey: '••••••••••••••••',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/bamboohr',
-      lastSync: '2024-01-15 08:45 AM'
-    },
-    {
-      id: 'smartrecruiters',
-      name: 'SmartRecruiters',
-      description: 'Talent acquisition platform',
-      icon: '🧠',
-      connected: false,
-      apiKey: '',
-      webhookUrl: 'https://api.xactfeedback.com/webhooks/smartrecruiters',
-      lastSync: 'Never'
+  useEffect(() => {
+    async function fetchIntegrations() {
+      setLoading(true);
+      setError(null);
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.company_id) {
+        setError('No company found');
+        setLoading(false);
+        return;
+      }
+      // Fetch ATS integrations
+      const { data: ats, error: atsError } = await supabase
+        .from('ats_integrations')
+        .select('*')
+        .eq('company_id', profile.company_id);
+      if (atsError) {
+        setError(atsError.message);
+        setLoading(false);
+        return;
+      }
+      setIntegrations(ats || []);
+      setLoading(false);
     }
-  ]);
+    fetchIntegrations();
+  }, []);
+
+  if (loading) return <div className="p-4">Loading ATS integrations...</div>;
+  if (error) return <div className="p-4 text-red-600">{error}</div>;
 
   const handleConnect = async (integrationId: string) => {
     setIsLoading(integrationId);

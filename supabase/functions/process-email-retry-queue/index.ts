@@ -1,15 +1,15 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'npm:@supabase/supabase-js@2'
-import { SMTPClient } from 'npm:emailjs@3.2.0'
+import { serve } from 'https://deno.land/x/supabase_functions@0.5.0/mod.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SMTPClient } from 'npm:emailjs@3.2.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-serve(async (req) => {
+export default serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -22,7 +22,7 @@ serve(async (req) => {
           persistSession: false,
         },
       }
-    )
+    );
 
     // Get SMTP configuration from environment variables
     const smtpConfig = {
@@ -31,7 +31,7 @@ serve(async (req) => {
       user: Deno.env.get('SMTP_USER') || '',
       password: Deno.env.get('SMTP_PASSWORD') || '',
       ssl: Deno.env.get('SMTP_SSL') === 'true',
-    }
+    };
 
     // Initialize SMTP client
     const smtp = new SMTPClient({
@@ -40,7 +40,7 @@ serve(async (req) => {
       user: smtpConfig.user,
       password: smtpConfig.password,
       ssl: smtpConfig.ssl,
-    })
+    });
 
     // Get emails that need to be retried
     const { data: retryQueue, error: retryError } = await supabaseClient
@@ -230,4 +230,4 @@ serve(async (req) => {
       }
     )
   }
-})
+});
