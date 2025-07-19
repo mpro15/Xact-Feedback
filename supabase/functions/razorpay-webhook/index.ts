@@ -1,12 +1,11 @@
-import { serve } from 'edge-runtime';
-import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { serve } from 'https://deno.land/x/supabase_functions@0.5.0/mod.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const webhookSecret = Deno.env.get('RAZORPAY_WEBHOOK_SECRET') ?? '';
 
-export default serve(async (req) => {
+export default serve(async (req: Request) => {
   const rawBody = await req.text();
   const signature = req.headers.get('x-razorpay-signature');
   let payload;
@@ -17,10 +16,24 @@ export default serve(async (req) => {
   }
 
   // Verify signature
-  const expectedSignature = crypto
-    .createHmac('sha256', webhookSecret)
-    .update(rawBody)
-    .digest('hex');
+  if (!webhookSecret) {
+    return new Response('Webhook secret missing', { status: 500 });
+  }
+  // Deno-compatible HMAC
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(webhookSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(rawBody)
+  );
+  const expectedSignature = Array.from(new Uint8Array(signatureBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
   if (signature !== expectedSignature) {
     return new Response('Signature mismatch', { status: 401 });
   }
@@ -31,7 +44,7 @@ export default serve(async (req) => {
     payload.event === 'order.paid'
   ) {
     const companyId = payload.payload?.payment?.entity?.notes?.company_id || payload.payload?.order?.entity?.notes?.company_id;
-    if (companyId) {
+    if (companyId && supabaseUrl && supabaseKey) {
       const supabase = createClient(supabaseUrl, supabaseKey);
       await supabase.from('companies').update({ subscription_active: true }).eq('id', companyId);
     }

@@ -1,28 +1,28 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from 'https://deno.land/x/supabase_functions@0.5.0/mod.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 interface FeedbackData {
-  candidate_id: string
-  candidate_name: string
-  candidate_email: string
-  position: string
-  rejection_stage: string
-  rejection_reason: string
-  company_id: string
-  company_name: string
-  company_logo?: string
-  primary_color: string
-  secondary_color: string
+  candidate_id: string;
+  candidate_name: string;
+  candidate_email: string;
+  position: string;
+  rejection_stage: string;
+  rejection_reason: string;
+  company_id: string;
+  company_name: string;
+  company_logo?: string;
+  primary_color: string;
+  secondary_color: string;
 }
 
-serve(async (req) => {
+export default serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -30,40 +30,38 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
-        auth: {
-          persistSession: false,
-        },
+        auth: { persistSession: false },
       }
-    )
+    );
 
-    const { data: feedbackData }: { data: FeedbackData } = await req.json()
+    const { data: feedbackData }: { data: FeedbackData } = await req.json();
 
     // Generate AI-powered feedback content
-    const feedbackContent = generateFeedbackContent(feedbackData)
+    const feedbackContent = generateFeedbackContent(feedbackData);
 
     // Generate PDF HTML
-    const pdfHtml = generatePDFHTML(feedbackData, feedbackContent)
+    const pdfHtml = generatePDFHTML(feedbackData, feedbackContent);
 
     // Convert HTML to PDF using Puppeteer-like functionality
-    const pdfBuffer = await generatePDF(pdfHtml)
+    const pdfBuffer = await generatePDF(pdfHtml);
 
     // Upload PDF to Supabase Storage
-    const fileName = `feedback-${feedbackData.candidate_id}-${Date.now()}.pdf`
+    const fileName = `feedback-${feedbackData.candidate_id}-${Date.now()}.pdf`;
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
       .from('feedback-pdfs')
       .upload(fileName, pdfBuffer, {
         contentType: 'application/pdf',
         cacheControl: '3600'
-      })
+      });
 
     if (uploadError) {
-      throw new Error(`PDF upload failed: ${uploadError.message}`)
+      throw new Error(`PDF upload failed: ${uploadError.message}`);
     }
 
     // Get public URL
     const { data: { publicUrl } } = supabaseClient.storage
       .from('feedback-pdfs')
-      .getPublicUrl(fileName)
+      .getPublicUrl(fileName);
 
     // Store feedback report in database
     const { data: reportData, error: reportError } = await supabaseClient
@@ -77,10 +75,10 @@ serve(async (req) => {
         created_at: new Date().toISOString()
       })
       .select()
-      .single()
+      .single();
 
     if (reportError) {
-      throw new Error(`Database insert failed: ${reportError.message}`)
+      throw new Error(`Database insert failed: ${reportError.message}`);
     }
 
     return new Response(
@@ -94,7 +92,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
-    )
+    );
 
   } catch (error) {
     return new Response(
@@ -103,15 +101,15 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       }
-    )
+    );
   }
-})
+});
 
 function generateFeedbackContent(data: FeedbackData) {
   // AI-powered feedback generation based on rejection stage and reason
-  const skillGaps = getSkillGaps(data.position, data.rejection_stage)
-  const resumeTips = getResumeTips(data.position, data.rejection_stage)
-  const courses = getRecommendedCourses(data.position, skillGaps)
+  const skillGaps = getSkillGaps(data.position, data.rejection_stage);
+  const resumeTips = getResumeTips(data.position, data.rejection_stage);
+  const courses = getRecommendedCourses(data.position, skillGaps);
 
   return {
     summary: `Thank you for your interest in the ${data.position} position at ${data.company_name}. While we were impressed with your background, we've decided to move forward with another candidate at the ${data.rejection_stage} stage.`,
@@ -132,7 +130,7 @@ function generateFeedbackContent(data: FeedbackData) {
       'Build a portfolio project showcasing your new skills',
       'Consider reapplying in 6-12 months'
     ]
-  }
+  };
 }
 
 function getSkillGaps(position: string, rejectionStage: string): string[] {
@@ -151,9 +149,9 @@ function getSkillGaps(position: string, rejectionStage: string): string[] {
       'Case Study': ['Market analysis', 'User research methods', 'Prioritization frameworks', 'Metrics definition'],
       'Final Interview': ['Stakeholder management', 'Cross-functional leadership', 'Strategic thinking', 'Data-driven decisions']
     }
-  }
+  };
 
-  return skillMap[position]?.[rejectionStage] || ['Communication skills', 'Technical knowledge', 'Problem-solving', 'Industry experience']
+  return skillMap[position]?.[rejectionStage] || ['Communication skills', 'Technical knowledge', 'Problem-solving', 'Industry experience'];
 }
 
 function getResumeTips(position: string, rejectionStage: string): string[] {
@@ -164,7 +162,7 @@ function getResumeTips(position: string, rejectionStage: string): string[] {
     'Tailor your experience section to match job requirements',
     'Add a skills section with proficiency levels',
     'Include relevant certifications and continuous learning'
-  ]
+  ];
 }
 
 function getRecommendedCourses(position: string, skillGaps: string[]) {
@@ -193,21 +191,21 @@ function getRecommendedCourses(position: string, skillGaps: string[]) {
         { title: 'Advanced Database Design', provider: 'UpGrad', url: 'https://upgrad.com/database', rating: 4.4, price: '$199' }
       ]
     }
-  }
+  };
 
   // Select courses based on skill gaps
   const selectedCourses = {
     free: [] as any[],
     paid: [] as any[]
-  }
+  };
 
   skillGaps.slice(0, 2).forEach(skill => {
-    const courses = courseDatabase[skill as keyof typeof courseDatabase]
+    const courses = courseDatabase[skill as keyof typeof courseDatabase];
     if (courses) {
-      selectedCourses.free.push(...courses.free.slice(0, 2))
-      selectedCourses.paid.push(...courses.paid.slice(0, 2))
+      selectedCourses.free.push(...courses.free.slice(0, 2));
+      selectedCourses.paid.push(...courses.paid.slice(0, 2));
     }
-  })
+  });
 
   // Ensure we have exactly 3 free and 3 paid courses
   while (selectedCourses.free.length < 3) {
@@ -216,7 +214,7 @@ function getRecommendedCourses(position: string, skillGaps: string[]) {
       provider: 'freeCodeCamp',
       url: 'https://freecodecamp.org/fundamentals',
       rating: 4.7
-    })
+    });
   }
 
   while (selectedCourses.paid.length < 3) {
@@ -226,13 +224,13 @@ function getRecommendedCourses(position: string, skillGaps: string[]) {
       url: 'https://coursera.org/professional',
       rating: 4.5,
       price: '$49/month'
-    })
+    });
   }
 
   return {
     free: selectedCourses.free.slice(0, 3),
     paid: selectedCourses.paid.slice(0, 3)
-  }
+  };
 }
 
 function generatePDFHTML(data: FeedbackData, content: any): string {
@@ -500,7 +498,7 @@ function generatePDFHTML(data: FeedbackData, content: any): string {
     </div>
 </body>
 </html>
-  `
+  `;
 }
 
 async function generatePDF(html: string): Promise<Uint8Array> {
@@ -516,6 +514,6 @@ async function generatePDF(html: string): Promise<Uint8Array> {
   // return pdf
   
   // For now, we'll create a mock PDF buffer
-  const encoder = new TextEncoder()
-  return encoder.encode(`%PDF-1.4 Mock PDF Content for: ${html.substring(0, 100)}...`)
+  const encoder = new TextEncoder();
+  return encoder.encode(`%PDF-1.4 Mock PDF Content for: ${html.substring(0, 100)}...`);
 }

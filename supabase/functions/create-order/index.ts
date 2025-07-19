@@ -1,33 +1,19 @@
-import { serve } from 'edge-runtime';
+import { serve } from 'https://deno.land/x/supabase_functions@0.5.0/mod.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export default serve(async (req) => {
+export default serve(async (req: Request) => {
   const body = await req.json();
-  const { companyId, plan, billingCycle } = body;
-
-  // Example pricing logic
-  let amount = 9900;
-  if (plan === 'enterprise') amount = 19900;
-  if (billingCycle === 'yearly') amount = amount * 12;
-  const currency = 'INR';
-
-  // Call Razorpay API to create order
-  const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
-  const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+  const { companyId, amount } = body;
+  const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID') ?? '';
+  const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET') ?? '';
   const orderRes = await fetch('https://api.razorpay.com/v1/orders', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Basic ' + Buffer.from(`${razorpayKeyId}:${razorpayKeySecret}`).toString('base64')
+      'Authorization': 'Basic ' + btoa(`${razorpayKeyId}:${razorpayKeySecret}`),
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      amount,
-      currency,
-      receipt: `company_${companyId}_${Date.now()}`,
-      payment_capture: 1
-    })
+    body: JSON.stringify({ amount, currency: 'INR', receipt: `order_${companyId}` })
   });
   const order = await orderRes.json();
-  return new Response(JSON.stringify({ order, key_id: razorpayKeyId }), {
-    headers: { 'Content-Type': 'application/json' }
-  });
+  return new Response(JSON.stringify(order), { headers: { 'Content-Type': 'application/json' } });
 });
