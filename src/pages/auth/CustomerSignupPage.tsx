@@ -192,44 +192,72 @@ export const CustomerSignupPage: React.FC = () => {
   };
 
   const handlePaymentAndLaunch = async () => {
-    if (!formData.cardNumber || !formData.expiryDate || !formData.cvv) {
-      addNotification({
-        type: 'error',
-        title: 'Payment Information Required',
-        message: 'Please fill in all payment details'
-      });
-      return;
-    }
-
     setIsLoading(true);
-
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Create customer account
-      await signup(formData.email, formData.password, formData.name, formData.companyName);
-      
-      addNotification({
-        type: 'success',
-        title: 'Welcome to Xact Feedback!',
-        message: `Payment successful! Your ${formData.plan} plan is now active. Redirecting to your dashboard...`
+      // 1. Signup logic (create company & user)
+      const signupRes = await signup({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        companyName: formData.companyName,
+        domain: formData.domain,
+        employees: formData.employees,
+        industry: formData.industry,
+        department: formData.department,
+        timezone: formData.timezone,
       });
-      
-      // Redirect to customer's application dashboard
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
-      
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Setup Failed',
-        message: 'Payment processing failed. Please try again or contact support.'
+      if (!signupRes?.companyId) throw new Error('Signup failed');
+      // 2. Create Razorpay order
+      const orderRes = await fetch('/functions/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: signupRes.companyId,
+          plan: formData.plan,
+          billingCycle: formData.billingCycle,
+        })
       });
-    } finally {
-      setIsLoading(false);
+      const { order, key_id } = await orderRes.json();
+      // 3. Launch Razorpay checkout
+      const options = {
+        key: key_id,
+        amount: order.amount,
+        currency: order.currency,
+        name: formData.companyName,
+        order_id: order.id,
+        handler: async function (response: any) {
+          // 4. Verify payment
+          const verifyRes = await fetch('/functions/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyId: signupRes.companyId,
+              paymentId: response.razorpay_payment_id,
+              orderId: response.razorpay_order_id,
+            })
+          });
+          const verify = await verifyRes.json();
+          if (verify.success) {
+            addNotification('Payment successful! You can now log in.', 'success');
+            navigate('/login');
+          } else {
+            addNotification('Payment verification failed.', 'error');
+          }
+        },
+        prefill: {
+          name: formData.name,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        theme: { color: '#22c55e' },
+      };
+      // @ts-ignore
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      addNotification(err.message || 'Payment error', 'error');
     }
+    setIsLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

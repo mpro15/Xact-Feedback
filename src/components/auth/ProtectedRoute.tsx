@@ -72,6 +72,7 @@ export const ProtectedRoute: React.FC = () => {
     );
   }
 
+  // Payment enforcement
   if (!subscriptionActive) {
     return <Navigate to="/payment-pending" replace />;
   }
