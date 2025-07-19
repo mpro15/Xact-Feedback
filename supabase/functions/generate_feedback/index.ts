@@ -1,47 +1,50 @@
 import { serve } from 'edge-runtime';
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const openaiApiKey = process.env.OPENAI_API_KEY;
-
-const openai = new OpenAI({ apiKey: openaiApiKey });
 
 export default serve(async (req) => {
   if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
   }
-  const { candidate_id, job_description } = await req.json();
-  if (!candidate_id || !job_description) {
-    return new Response('Missing candidate_id or job_description', { status: 400 });
-  }
-
-  // Generate feedback summary using OpenAI
-  let summary;
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: 'You are an expert HR feedback generator.' },
-        { role: 'user', content: `Generate a feedback summary for the following job description: ${job_description}` },
-      ],
-      max_tokens: 300,
+    const { candidate_id, job_description } = await req.json();
+    if (!candidate_id || !job_description) {
+      return new Response(JSON.stringify({ error: 'Missing candidate_id or job_description' }), { status: 400 });
+    }
+    // OpenAI call
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: 'You are an expert recruiter. Summarize feedback for the candidate based on the job description.' },
+          { role: 'user', content: job_description }
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      })
     });
-    summary = completion.choices[0].message.content;
-  } catch (err) {
-    return new Response('OpenAI error', { status: 500 });
+    const openaiData = await openaiRes.json();
+    if (!openaiRes.ok || !openaiData.choices?.[0]?.message?.content) {
+      return new Response(JSON.stringify({ error: 'OpenAI error', details: openaiData }), { status: 500 });
+    }
+    const summary = openaiData.choices[0].message.content;
+    // Insert feedback
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const { data, error } = await supabase.from('feedback').insert({
+      candidate_id,
+      summary,
+      feedback_pdf_url: ''
+    }).select('id').single();
+    if (error || !data?.id) {
+      return new Response(JSON.stringify({ error: 'DB insert error', details: error }), { status: 500 });
+    }
+    return new Response(JSON.stringify({ feedback_id: data.id, summary }), { headers: { 'Content-Type': 'application/json' } });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
-
-  // Insert feedback into feedback table
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  const { data, error } = await supabase
-    .from('feedback')
-    .insert({ candidate_id, summary, feedback_pdf_url: null })
-    .select();
-  if (error || !data || !data[0]) {
-    return new Response('Database error', { status: 500 });
-  }
-
-  return new Response(JSON.stringify({ feedback_id: data[0].id, summary }), { status: 200 });
 });

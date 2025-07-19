@@ -63,3 +63,24 @@ SELECT cron.schedule('retry_email_campaigns', '*/5 * * * *', $$
   END;
   $$
 $$);
+
+-- Function: retry_failed_emails()
+CREATE OR REPLACE FUNCTION retry_failed_emails() RETURNS VOID AS $$
+DECLARE
+  r RECORD;
+  backoff INTERVAL;
+BEGIN
+  FOR r IN SELECT * FROM email_campaigns WHERE status = 'retrying' AND attempt_count < 3 LOOP
+    backoff := (2 ^ r.attempt_count) * INTERVAL '1 minute';
+    IF now() - r.last_attempt_at >= backoff THEN
+      -- Attempt resend (assume send_feedback is a function that triggers the email send)
+      PERFORM send_feedback(r.candidate_id, r.feedback_id);
+      UPDATE email_campaigns
+        SET attempt_count = attempt_count + 1,
+            last_attempt_at = now(),
+            status = CASE WHEN attempt_count + 1 >= 3 THEN 'failed' ELSE 'retrying' END
+        WHERE id = r.id;
+    END IF;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;

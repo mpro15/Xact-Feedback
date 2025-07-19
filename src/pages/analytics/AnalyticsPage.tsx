@@ -17,8 +17,8 @@ import {
 export const AnalyticsPage: React.FC = () => {
   const [stats, setStats] = useState({
     totalSent: 0,
-    openCount: 0,
-    clickCount: 0,
+    opens: 0,
+    clicks: 0,
     openRate: 0,
     clickRate: 0,
     funnel: {} as Record<string, number>,
@@ -31,12 +31,12 @@ export const AnalyticsPage: React.FC = () => {
       const sentRes = await supabase.from('email_campaigns').select('*', { count: 'exact', head: true });
       const totalSent = sentRes.count || 0;
       // Opened
-      const openRes = await supabase.from('email_campaigns').select('*', { count: 'exact', head: true }).not('opened_at', 'is', null);
-      const openCount = openRes.count || 0;
+      const openRes = await supabase.from('email_campaigns').select('id', { count: 'exact', head: true }).not('opened_at', 'is', null);
+      const opens = openRes.count || 0;
       // Clicked
-      const clickRes = await supabase.from('email_campaigns').select('*', { count: 'exact', head: true }).not('clicked_at', 'is', null);
-      const clickCount = clickRes.count || 0;
-      // Funnel data
+      const clickRes = await supabase.from('email_campaigns').select('id', { count: 'exact', head: true }).not('clicked_at', 'is', null);
+      const clicks = clickRes.count || 0;
+      // Funnel data: grouped count by rejection_stage
       const funnelRes = await supabase.from('candidates').select('rejection_stage');
       const funnel: Record<string, number> = {};
       if (funnelRes.data) {
@@ -45,17 +45,14 @@ export const AnalyticsPage: React.FC = () => {
           funnel[stage] = (funnel[stage] || 0) + 1;
         });
       }
-      // Chart data: group by month
-      // Replace with your actual monthly aggregation RPC or query
-      const chartData = [
-        { month: 'N/A', sent: totalSent, opened: openCount, clicked: clickCount }
-      ];
+      // Chart data for Recharts
+      const chartData = Object.entries(funnel).map(([stage, count]) => ({ stage, count }));
       setStats({
         totalSent,
-        openCount,
-        clickCount,
-        openRate: totalSent ? (openCount / totalSent) * 100 : 0,
-        clickRate: totalSent ? (clickCount / totalSent) * 100 : 0,
+        opens,
+        clicks,
+        openRate: totalSent ? opens / totalSent : 0,
+        clickRate: totalSent ? clicks / totalSent : 0,
         funnel,
         chartData,
       });
@@ -74,8 +71,8 @@ export const AnalyticsPage: React.FC = () => {
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard title="Total Sent" value={stats.totalSent.toString()} icon={Mail} color="blue" change="" trend="up" />
-        <MetricCard title="Open Rate" value={stats.openRate.toFixed(1) + '%'} icon={Eye} color="green" change="" trend="up" />
-        <MetricCard title="Click Rate" value={stats.clickRate.toFixed(1) + '%'} icon={MousePointer} color="purple" change="" trend="up" />
+        <MetricCard title="Open Rate" value={(stats.openRate * 100).toFixed(1) + '%'} icon={Eye} color="green" change="" trend="up" />
+        <MetricCard title="Click Rate" value={(stats.clickRate * 100).toFixed(1) + '%'} icon={MousePointer} color="purple" change="" trend="up" />
         <MetricCard title="Candidates" value={candidateCount.toString()} icon={Users} color="orange" change="" trend="up" />
       </div>
       {/* Charts Grid */}
@@ -84,16 +81,14 @@ export const AnalyticsPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Engagement Bar Chart */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Engagement Over Time</h3>
+              <h3 className="text-lg font-semibold mb-4">Rejection Stage Distribution</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={stats.chartData}>
-                  <XAxis dataKey="month" />
-                  <YAxis />
+                  <XAxis dataKey="stage" />
+                  <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="sent" fill="#3b82f6" name="Sent" />
-                  <Bar dataKey="opened" fill="#22c55e" name="Opened" />
-                  <Bar dataKey="clicked" fill="#a855f7" name="Clicked" />
+                  <Bar dataKey="count" fill="#3b82f6" name="Candidates" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -107,11 +102,11 @@ export const AnalyticsPage: React.FC = () => {
                     <div className="text-sm text-gray-600">Total Sent</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{stats.openRate.toFixed(1)}%</div>
+                    <div className="text-2xl font-bold text-green-600">{(stats.openRate * 100).toFixed(1)}%</div>
                     <div className="text-sm text-gray-600">Open Rate</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">{stats.clickRate.toFixed(1)}%</div>
+                    <div className="text-2xl font-bold text-purple-600">{(stats.clickRate * 100).toFixed(1)}%</div>
                     <div className="text-sm text-gray-600">Click Rate</div>
                   </div>
                   <div className="text-center">
