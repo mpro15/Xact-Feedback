@@ -34,6 +34,10 @@ export const ProtectedRoute: React.FC = () => {
     checkAuth();
   }, []);
 
+  console.log('[ProtectedRoute] user:', user);
+  console.log('[ProtectedRoute] isAuthenticated:', isAuthenticated);
+  console.log('[ProtectedRoute] subscriptionActive:', subscriptionActive);
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -43,10 +47,12 @@ export const ProtectedRoute: React.FC = () => {
   }
 
   if (!isAuthenticated) {
+    console.log('[ProtectedRoute] Not authenticated, redirecting to /login');
     return <Navigate to="/login" replace />;
   }
 
   if (!user.isOnboarded) {
+    console.log('[ProtectedRoute] Not onboarded, redirecting to /onboarding');
     return <Navigate to="/onboarding" replace />;
   }
 
@@ -74,8 +80,10 @@ export const ProtectedRoute: React.FC = () => {
 
   // Payment enforcement
   if (!subscriptionActive) {
+    console.log('[ProtectedRoute] Subscription inactive, redirecting to /payment-pending');
     return <Navigate to="/payment-pending" replace />;
   }
 
+  console.log('[ProtectedRoute] Rendering protected route');
   return <Outlet />;
 };

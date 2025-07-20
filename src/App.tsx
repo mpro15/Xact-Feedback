@@ -14,6 +14,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { CustomerSignupPage } from './pages/auth/CustomerSignupPage';
 import { UserSignupPage } from './pages/auth/UserSignupPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
+import { SupportLoginPage } from './pages/support/SupportLoginPage';
 
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { CandidatesPage } from './pages/candidates/CandidatesPage';
@@ -44,6 +45,7 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/customer-signup" element={<CustomerSignupPage />} />
                 <Route path="/signup" element={<UserSignupPage />} />
+                <Route path="/support-login" element={<SupportLoginPage />} />
 
                 {/* Onboarding Route */}
                 <Route path="/onboarding" element={
