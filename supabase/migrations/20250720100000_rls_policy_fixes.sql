@@ -35,12 +35,6 @@ ON users
 FOR DELETE
 USING (id = auth.uid());
 
--- Allow all authenticated users to SELECT any row (for debugging/support)
-CREATE POLICY "Allow all authenticated select"
-ON users
-FOR SELECT
-USING (auth.uid() IS NOT NULL);
-
 -- COMPANIES TABLE POLICIES
 DROP POLICY IF EXISTS "Allow access to company if user exists" ON companies;
 -- Remove the problematic recursive policy for companies

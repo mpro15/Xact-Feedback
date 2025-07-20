@@ -11,16 +11,24 @@ export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, error: authError } = useAuth();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      await login(email, password);
+      const success = await login(email, password);
+      if (!success) {
+        addNotification({
+          type: 'error',
+          title: 'Login Failed',
+          message: authError || 'Invalid email or password. Please try again.'
+        });
+        setIsLoading(false);
+        return;
+      }
       addNotification({
         type: 'success',
         title: 'Login Successful',
@@ -30,8 +38,8 @@ export const LoginPage: React.FC = () => {
     } catch (error) {
       addNotification({
         type: 'error',
-        title: 'Login Failed',
-        message: 'Invalid email or password. Please try again.'
+        title: 'Login Error',
+        message: typeof error === 'object' && error !== null && 'message' in error ? (error as any).message : 'Unexpected error during login.'
       });
     } finally {
       setIsLoading(false);
@@ -136,6 +144,10 @@ export const LoginPage: React.FC = () => {
               )}
             </button>
           </div>
+
+          {authError && (
+            <div className="text-center text-red-600 text-sm mt-4">{authError}</div>
+          )}
 
           <div className="text-center">
             <p className="text-sm text-gray-600">

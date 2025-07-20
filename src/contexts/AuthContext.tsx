@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  updateUser: (updates: any) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,14 +21,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Ensure isOnboarded is loaded from Supabase user metadata
   useEffect(() => {
     let listener: any;
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data?.session) {
+        // Fetch user profile from users table
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.session.user.id)
+          .single();
         setSession(data.session);
-        setUser(data.session.user);
-        localStorage.setItem('sb-user', JSON.stringify(data.session.user));
+        setUser({ ...data.session.user, ...profile });
+        localStorage.setItem('sb-user', JSON.stringify({ ...data.session.user, ...profile }));
       } else {
         setSession(null);
         setUser(null);
@@ -37,11 +45,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     getSession();
     listener = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
       if (session?.user) {
-        localStorage.setItem('sb-user', JSON.stringify(session.user));
+        // Fetch user profile from users table
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            setSession(session);
+            setUser({ ...session.user, ...profile });
+            localStorage.setItem('sb-user', JSON.stringify({ ...session.user, ...profile }));
+          });
       } else {
+        setSession(null);
+        setUser(null);
         localStorage.removeItem('sb-user');
       }
     });
@@ -75,7 +93,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem('sb-user');
   };
 
-  const value: AuthContextType = {
+  // Add updateUser to allow updating user state from onboarding
+  const updateUser = (updates: any) => {
+    setUser((prev: any) => ({ ...prev, ...updates }));
+    localStorage.setItem('sb-user', JSON.stringify({ ...user, ...updates }));
+  };
+
+  const value: AuthContextType & { updateUser: (updates: any) => void } = {
     user,
     session,
     loading,
@@ -83,6 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     login,
     logout,
     isAuthenticated: !!user,
+    updateUser,
   };
 
   return (

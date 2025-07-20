@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Upload, Palette, Mail, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { supabase } from '../../lib/supabaseClient';
 
 export const OnboardingPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -22,11 +23,39 @@ export const OnboardingPage: React.FC = () => {
   const { addNotification } = useNotification();
   const navigate = useNavigate();
 
+  // Enterprise: Redirect if already onboarded
+  useEffect(() => {
+    if (user?.isOnboarded) {
+      navigate('/dashboard');
+      return;
+    }
+    // If user is not onboarded, stay on onboarding page
+  }, [user, navigate]);
+
   const steps = [
     { id: 1, title: 'Company Branding', icon: Palette },
     { id: 2, title: 'Email Configuration', icon: Mail },
     { id: 3, title: 'Setup Complete', icon: CheckCircle }
   ];
+
+  const validateForm = () => {
+    if (!formData.primaryColor || !formData.secondaryColor) {
+      return 'Branding colors are required.';
+    }
+    if (!formData.logo) {
+      return 'Company logo is required.';
+    }
+    if (!formData.emailSender || formData.emailSender.length < 2) {
+      return 'Sender name is required.';
+    }
+    if (!formData.emailSignature || formData.emailSignature.length < 2) {
+      return 'Email signature is required.';
+    }
+    if (formData.logo && formData.logo.size > 2 * 1024 * 1024) {
+      return 'Logo file size must be less than 2MB.';
+    }
+    return null;
+  };
 
   const handleNext = () => {
     if (currentStep < steps.length) {
@@ -42,33 +71,70 @@ export const OnboardingPage: React.FC = () => {
 
   const handleComplete = async () => {
     setIsLoading(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update theme
+      if (!user || !user.id) {
+        throw new Error('User not found. Please log in again.');
+      }
+      // Validate all form fields
+      const validationError = validateForm();
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      // Upload logo to Supabase Storage (if needed)
+      let logoUrl = user.logoUrl || '';
+      if (formData.logo) {
+        const fileExt = formData.logo.name.split('.').pop();
+        const fileName = `${user.id}/logo.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('company-logos')
+          .upload(fileName, formData.logo, { upsert: true });
+        if (uploadError) {
+          throw uploadError;
+        }
+        logoUrl = `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/company-logos/${fileName}`;
+      }
+      // Update theme (only known properties)
       updateTheme({
         primaryColor: formData.primaryColor,
         secondaryColor: formData.secondaryColor,
         companyName: user?.companyName || 'Your Company'
       });
-      
-      // Update user onboarding status
-      updateUser({ isOnboarded: true });
-      
+      // Update user onboarding status and branding in Supabase
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          isOnboarded: true,
+          logoUrl,
+          emailSender: formData.emailSender,
+          emailSignature: formData.emailSignature
+        })
+        .eq('id', user.id);
+      if (updateError) {
+        throw updateError;
+      }
+      // Refetch user profile from Supabase to ensure context is up-to-date
+      const { data: profile, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      if (fetchError || !profile) {
+        throw fetchError || new Error('Failed to fetch updated user profile.');
+      }
+      updateUser({ ...profile });
       addNotification({
         type: 'success',
         title: 'Setup Complete',
         message: 'Your account is now ready to use!'
       });
-      
+      console.log('[OnboardingPage] Onboarding completed for user:', user.id);
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[OnboardingPage] Setup Failed:', error);
       addNotification({
         type: 'error',
         title: 'Setup Failed',
-        message: 'Failed to complete setup. Please try again.'
+        message: error?.message || 'Failed to complete setup. Please try again.'
       });
     } finally {
       setIsLoading(false);
@@ -109,7 +175,8 @@ export const OnboardingPage: React.FC = () => {
                   </div>
                   <input
                     type="file"
-                    className="hidden"
+                    data-cy="logo-upload"
+                    className={typeof window !== 'undefined' && (window as any).Cypress ? "" : "hidden"}
                     accept=".png,.jpg,.jpeg,.svg"
                     onChange={handleFileUpload}
                   />
@@ -124,6 +191,7 @@ export const OnboardingPage: React.FC = () => {
                 </label>
                 <input
                   type="color"
+                  data-cy="primary-color"
                   value={formData.primaryColor}
                   onChange={(e) => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
                   className="w-full h-10 rounded border border-gray-300"
@@ -135,6 +203,7 @@ export const OnboardingPage: React.FC = () => {
                 </label>
                 <input
                   type="color"
+                  data-cy="secondary-color"
                   value={formData.secondaryColor}
                   onChange={(e) => setFormData(prev => ({ ...prev, secondaryColor: e.target.value }))}
                   className="w-full h-10 rounded border border-gray-300"
@@ -160,6 +229,7 @@ export const OnboardingPage: React.FC = () => {
               </label>
               <input
                 type="text"
+                data-cy="email-sender"
                 value={formData.emailSender}
                 onChange={(e) => setFormData(prev => ({ ...prev, emailSender: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -172,6 +242,7 @@ export const OnboardingPage: React.FC = () => {
                 Email Signature
               </label>
               <textarea
+                data-cy="email-signature"
                 value={formData.emailSignature}
                 onChange={(e) => setFormData(prev => ({ ...prev, emailSignature: e.target.value }))}
                 rows={4}
@@ -198,7 +269,9 @@ export const OnboardingPage: React.FC = () => {
         );
       
       default:
-        return null;
+        return (
+          <div className="text-center text-red-600 font-bold p-8">Invalid onboarding step: {currentStep}</div>
+        );
     }
   };
 
@@ -277,3 +350,5 @@ export const OnboardingPage: React.FC = () => {
     </div>
   );
 };
+
+export default OnboardingPage;
