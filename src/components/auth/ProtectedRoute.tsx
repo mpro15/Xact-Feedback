@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import React, { useEffect, useState, ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 
-export const ProtectedRoute: React.FC = () => {
+interface ProtectedRouteProps { children: ReactNode }
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [subscriptionActive, setSubscriptionActive] = useState(true);
@@ -51,7 +53,7 @@ export const ProtectedRoute: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!user.isOnboarded) {
+  if (!user.is_onboarded) {
     console.log('[ProtectedRoute] Not onboarded, redirecting to /onboarding');
     return <Navigate to="/onboarding" replace />;
   }
@@ -85,5 +87,5 @@ export const ProtectedRoute: React.FC = () => {
   }
 
   console.log('[ProtectedRoute] Rendering protected route');
-  return <Outlet />;
+  return <>{children}</>;
 };

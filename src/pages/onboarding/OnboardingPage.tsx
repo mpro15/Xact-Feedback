@@ -29,7 +29,6 @@ export const OnboardingPage: React.FC = () => {
       navigate('/dashboard');
       return;
     }
-    // If user is not onboarded, stay on onboarding page
   }, [user, navigate]);
 
   const steps = [
