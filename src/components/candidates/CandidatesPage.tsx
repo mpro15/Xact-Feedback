@@ -158,7 +158,10 @@ export const CandidatesPage: React.FC = () => {
                     <td className="flex gap-2">
                       <button
                         className="neumorphic-btn-secondary px-2 py-1"
-                        onClick={() => setModalCandidate(candidate)}
+                        onClick={() => {
+                          setModalCandidate(candidate);
+                          setShowModal(true);
+                        }}
                       >
                         <Eye className="w-4 h-4" /> View
                       </button>
