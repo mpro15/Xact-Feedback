@@ -1,19 +1,20 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, Mail, TrendingUp, UserMinus } from 'lucide-react';
 import { StatsCard } from '../../components/dashboard/StatsCard';
 import { RecentCandidates } from '../../components/dashboard/RecentCandidates';
 import { QuickActions } from '../../components/dashboard/QuickActions';
 import { PerformanceChart } from '../../components/dashboard/PerformanceChart';
+import { supabase } from '../../lib/supabaseClient';
 
 export const DashboardPage: React.FC = () => {
-  const stats = [
+  const [stats, setStats] = useState([
     {
       title: 'Total Candidates',
-      value: '2,847',
-      change: '+12%',
+      value: 'Loading...',
+      change: '',
       trend: 'up' as const,
       icon: Users,
-      color: 'blue'
+      color: 'blue' as const
     },
     {
       title: 'Feedback Sent',
@@ -21,7 +22,7 @@ export const DashboardPage: React.FC = () => {
       change: '+8%',
       trend: 'up' as const,
       icon: Mail,
-      color: 'green'
+      color: 'green' as const
     },
     {
       title: 'Email Open Rate',
@@ -29,7 +30,7 @@ export const DashboardPage: React.FC = () => {
       change: '+5.2%',
       trend: 'up' as const,
       icon: TrendingUp,
-      color: 'purple'
+      color: 'purple' as const
     },
     {
       title: 'Re-applications',
@@ -37,9 +38,47 @@ export const DashboardPage: React.FC = () => {
       change: '+23%',
       trend: 'up' as const,
       icon: UserMinus,
-      color: 'orange'
+      color: 'orange' as const
     }
-  ];
+  ]);
+
+  useEffect(() => {
+    async function fetchTotalCandidates() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile?.company_id) return;
+
+        const { count, error } = await supabase
+          .from('candidates')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', profile.company_id);
+
+        if (error) {
+          console.error('Error fetching total candidates:', error);
+          return;
+        }
+
+        setStats(prevStats => prevStats.map(stat => {
+          if (stat.title === 'Total Candidates') {
+            return { ...stat, value: count?.toString() || '0' };
+          }
+          return stat;
+        }));
+      } catch (err) {
+        console.error('Error fetching total candidates:', err);
+      }
+    }
+
+    fetchTotalCandidates();
+  }, []);
 
   return (
     <div className="space-y-6 sm:space-y-8">
