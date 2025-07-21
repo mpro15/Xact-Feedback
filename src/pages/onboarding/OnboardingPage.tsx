@@ -74,11 +74,13 @@ export const OnboardingPage: React.FC = () => {
       if (!user || !user.id) {
         throw new Error('User not found. Please log in again.');
       }
+      console.log('Passed stage: User not found. Please log in again.');
       // Validate all form fields
       const validationError = validateForm();
       if (validationError) {
         throw new Error(validationError);
       }
+      console.log('Passed stage: Form validation successful.');
       // Upload logo to Supabase Storage (if needed)
       let logoUrl = user.logoUrl || '';
       if (formData.logo) {
@@ -88,16 +90,19 @@ export const OnboardingPage: React.FC = () => {
           .from('company-logos')
           .upload(fileName, formData.logo, { upsert: true });
         if (uploadError) {
+          console.error('[OnboardingPage] Error uploading logo:', uploadError);
           throw uploadError;
         }
         logoUrl = `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/company-logos/${fileName}`;
       }
+      console.log('Passed stage: Logo uploaded successfully:', logoUrl);
       // Update theme (only known properties)
       updateTheme({
         primaryColor: formData.primaryColor,
         secondaryColor: formData.secondaryColor,
         companyName: user?.companyName || 'Your Company'
       });
+      console.log('Passed stage: Theme updated successfully.');
       // Update user onboarding status and branding in Supabase
       const { error: updateError } = await supabase
         .from('users')
@@ -108,7 +113,9 @@ export const OnboardingPage: React.FC = () => {
           emailSignature: formData.emailSignature
         })
         .eq('id', user.id);
+      console.log('Passed stage: User onboarding status updated in Supabase.');
       if (updateError) {
+        console.error('[OnboardingPage] Error updating user:', updateError);
         throw updateError;
       }
       // Refetch user profile from Supabase to ensure context is up-to-date
@@ -117,10 +124,13 @@ export const OnboardingPage: React.FC = () => {
         .select('*')
         .eq('id', user.id)
         .single();
+      console.log('[OnboardingPage] Fetched updated user profile:', profile);
       if (fetchError || !profile) {
+        console.error('[OnboardingPage] Error fetching updated user profile:', fetchError);
         throw fetchError || new Error('Failed to fetch updated user profile.');
       }
       updateUser({ ...profile });
+      console.log('[OnboardingPage] User profile updated in context:', profile);
       addNotification({
         type: 'success',
         title: 'Setup Complete',
