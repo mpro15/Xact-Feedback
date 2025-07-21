@@ -43,7 +43,7 @@ export const DashboardPage: React.FC = () => {
   ]);
 
   useEffect(() => {
-    async function fetchTotalCandidates() {
+    async function fetchDashboardStats() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -56,28 +56,72 @@ export const DashboardPage: React.FC = () => {
 
         if (!profile?.company_id) return;
 
-        const { count, error } = await supabase
-          .from('candidates')
-          .select('*', { count: 'exact', head: true })
-          .eq('company_id', profile.company_id);
+        const [candidatesCount, feedbackSentCount, openRateData, reapplicationsCount] = await Promise.all([
+          supabase
+            .from('candidates')
+            .select('*', { count: 'exact', head: true })
+            .eq('company_id', profile.company_id),
+          supabase
+            .from('candidates')
+            .select('*', { count: 'exact', head: true })
+            .eq('company_id', profile.company_id)
+            .eq('feedback_status', 'sent'),
+          supabase
+            .from('candidates')
+            .select('email_opens, email_clicks')
+            .eq('company_id', profile.company_id),
+          supabase
+            .from('candidates')
+            .select('*', { count: 'exact', head: true })
+            .eq('company_id', profile.company_id)
+            .eq('reapplied', true)
+        ]);
 
-        if (error) {
-          console.error('Error fetching total candidates:', error);
-          return;
-        }
+        const totalCandidates = candidatesCount.count || 0;
+        const feedbackSent = feedbackSentCount.count || 0;
+        const openRate = openRateData?.data ? (openRateData.data.reduce((acc, curr) => acc + (curr.email_opens || 0), 0) / totalCandidates) : 0;
+        const reapplications = reapplicationsCount.count || 0;
 
-        setStats(prevStats => prevStats.map(stat => {
-          if (stat.title === 'Total Candidates') {
-            return { ...stat, value: count?.toString() || '0' };
+        setStats([
+          {
+            title: 'Total Candidates',
+            value: totalCandidates.toString(),
+            change: '',
+            trend: 'up' as const,
+            icon: Users,
+            color: 'blue' as const
+          },
+          {
+            title: 'Feedback Sent',
+            value: feedbackSent.toString(),
+            change: '',
+            trend: 'up' as const,
+            icon: Mail,
+            color: 'green' as const
+          },
+          {
+            title: 'Email Open Rate',
+            value: `${(openRate * 100).toFixed(1)}%`,
+            change: '',
+            trend: 'up' as const,
+            icon: TrendingUp,
+            color: 'purple' as const
+          },
+          {
+            title: 'Re-applications',
+            value: reapplications.toString(),
+            change: '',
+            trend: 'up' as const,
+            icon: UserMinus,
+            color: 'orange' as const
           }
-          return stat;
-        }));
+        ]);
       } catch (err) {
-        console.error('Error fetching total candidates:', err);
+        console.error('Error fetching dashboard stats:', err);
       }
     }
 
-    fetchTotalCandidates();
+    fetchDashboardStats();
   }, []);
 
   return (
