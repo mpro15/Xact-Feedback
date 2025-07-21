@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Menu, Bell, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -8,6 +9,17 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { user } = useAuth();
+  const { notifications } = useNotification();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleIconClick = () => {
+    setIsDropdownOpen((prev) => !prev);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDropdownOpen(false);
+  };
 
   return (
     <header className="neumorphic-header h-20 lg:border-l lg:border-shadow/20">
@@ -19,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           >
             <Menu className="w-5 h-5 text-gray-600" />
           </button>
-          
+
           <div className="neumorphic-search hidden sm:flex items-center px-4 py-3 w-80">
             <Search className="w-4 h-4 text-gray-500 mr-3" />
             <input
@@ -30,21 +42,58 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <button className="neumorphic-btn p-3 relative">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-400 to-red-600 rounded-full text-xs text-white flex items-center justify-center shadow-neumorphic-sm">
-              3
-            </span>
-          </button>
-          
+        <div className="flex items-center space-x-4 relative">
+          <div
+            className="relative"
+            onMouseLeave={handleMouseLeave}
+          >
+            <button
+              className="neumorphic-btn p-3 relative"
+              onClick={handleIconClick}
+            >
+              <Bell className="w-5 h-5 text-gray-600" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-400 to-red-600 rounded-full text-xs text-white flex items-center justify-center shadow-neumorphic-sm">
+                {notifications.length}
+              </span>
+            </button>
+
+            {isDropdownOpen && (
+              <div
+                ref={dropdownRef}
+                className="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-lg p-4 z-50"
+              >
+                {notifications.length > 0 ? (
+                  <ul className="space-y-2">
+                    {notifications.map((notification) => (
+                      <li
+                        key={notification.id}
+                        className="p-2 border-b last:border-b-0 border-gray-200"
+                      >
+                        <h4 className="font-bold text-gray-800 text-sm">
+                          {notification.title}
+                        </h4>
+                        <p className="text-gray-600 text-xs">
+                          {notification.message}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-600 text-sm">No notifications</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="hidden sm:flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full shadow-neumorphic-sm flex items-center justify-center">
               <span className="text-white font-semibold text-sm">
                 {user?.name?.charAt(0) || 'U'}
               </span>
             </div>
-            <span className="text-sm font-semibold text-gray-800">{user?.name}</span>
+            <span className="text-sm font-semibold text-gray-800">
+              {user?.name}
+            </span>
           </div>
         </div>
       </div>
