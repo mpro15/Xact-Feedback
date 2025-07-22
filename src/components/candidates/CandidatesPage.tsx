@@ -1,249 +1,183 @@
 // ✅ Full Working CandidatesPage.tsx (with Supabase integration)
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Download, Eye, Send } from 'lucide-react';
-import { CandidateModal } from '../../components/candidates/CandidateModal';
-import { useNotification } from '../../contexts/NotificationContext';
+import { Eye, Edit, Send } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import { CandidateUploadModal } from './CandidateUploadModal';
+import { CandidateModal } from './CandidateModal';
+import { FeedbackModal } from './FeedbackModal';
+import { EditCandidateModal } from './EditCandidateModal';
 
 export const CandidatesPage: React.FC = () => {
-  const { addNotification } = useNotification();
   const [candidates, setCandidates] = useState<any[]>([]);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [modalCandidate, setModalCandidate] = useState<any | null>(null);
-  const [showSingleUploadModal, setShowSingleUploadModal] = useState(false);
-  const [singleCandidate, setSingleCandidate] = useState({ name: '', email: '', position: '', rejection_stage: '' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // ✅ Fetch candidates on mount
   useEffect(() => {
+    async function fetchCandidates() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile?.company_id) return;
+
+        const { data, error: candidateError } = await supabase
+          .from('candidates')
+          .select('*')
+          .eq('company_id', profile.company_id)
+          .order('created_at', { ascending: false });
+
+        if (candidateError) {
+          setError(candidateError.message);
+        } else {
+          setCandidates(data || []);
+        }
+      } catch (err) {
+        setError('Failed to fetch candidates.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
     fetchCandidates();
   }, []);
 
-  async function fetchCandidates() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: profile } = await supabase.from('users').select('company_id').eq('id', user.id).single();
-      if (!profile?.company_id) return;
-      const { data: candidateData, error } = await supabase.from('candidates').select('*').eq('company_id', profile.company_id).order('created_at', { ascending: false });
-      if (error) {
-        addNotification({ type: 'error', title: 'Fetch Failed', message: error.message });
-      } else {
-        setCandidates(candidateData || []);
-      }
-    } catch (err: any) {
-      addNotification({ type: 'error', title: 'Fetch Failed', message: err.message });
-    }
-  }
+  const handleViewCandidate = (candidate: any) => {
+    setSelectedCandidate(candidate);
+  };
 
-  // --- Robust Upload Handler ---
-  async function handleUploadCandidates(input: any) {
-    try {
-      console.log('Raw upload payload:', input);
-      // Get user and company_id
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-      const { data: profile } = await supabase.from('users').select('company_id').eq('id', user.id).single();
-      if (!profile?.company_id) throw new Error('No company_id found');
-      const company_id = profile.company_id;
-      // Normalize input
-      const arr = Array.isArray(input) ? input : [input];
-      const today = new Date().toISOString().slice(0, 10);
-      const normalized = arr.map((row) => {
-        // Support both lowercase and uppercase Excel keys
-        const getKey = (obj: any, keys: string[]) => keys.find(k => obj.hasOwnProperty(k));
-        const nameKey = getKey(row, ['name', 'Name']);
-        const emailKey = getKey(row, ['email', 'Email']);
-        const positionKey = getKey(row, ['position', 'Position']);
-        const stageKey = getKey(row, ['rejection_stage', 'RejectionStage', 'rejectionStage']);
-        const appliedKey = getKey(row, ['applied_date', 'AppliedDate', 'appliedDate']);
-        return {
-          name: nameKey ? row[nameKey]?.toString().trim() : '',
-          email: emailKey ? row[emailKey]?.toString().trim() : '',
-          position: positionKey ? row[positionKey]?.toString().trim() : '',
-          rejection_stage: stageKey ? row[stageKey]?.toString().trim() : '',
-          applied_date: appliedKey ? row[appliedKey]?.toString().trim() : today,
-          status: 'Not Sent',
-          company_id,
-        };
-      }); // closes normalized map
-      // Filter out invalid rows
-      const valid = normalized.filter((c) => {
-        if (!c.name || !c.email) {
-          console.warn(`Skipped row: missing name or email`, c);
-          addNotification({ type: 'error', title: 'Skipped Row', message: `Row missing name or email.` });
-          return false;
-        }
-        return true;
-      });
-      if (valid.length === 0) throw new Error('No valid candidates to upload');
-      // Insert
-      const { error } = await supabase.from('candidates').insert(valid);
-      if (error) {
-        addNotification({ type: 'error', title: 'Upload Failed', message: error.message });
-        throw error;
-      }
-      addNotification({ type: 'success', title: 'Upload Successful', message: `${valid.length} candidates added.` });
-      await fetchCandidates();
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      addNotification({ type: 'error', title: 'Upload Error', message: err.message });
-    }
-  }
+  const handleEditCandidate = (candidate: any) => {
+    setSelectedCandidate(candidate);
+    setIsEditModalOpen(true);
+  };
 
-  // Remove search filter for now
-  const visibleCandidates = candidates;
+  const handleSendFeedback = (candidate: any) => {
+    setSelectedCandidate(candidate);
+    setIsFeedbackModalOpen(true);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'sent':
+        return 'bg-green-100 text-green-800';
+      case 'draft':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'not_sent':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (loading) return <div className="p-4">Loading candidates...</div>;
+  if (error) return <div className="p-4 text-red-600">{error}</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Candidates</h1>
-          <p className="text-gray-600">Manage feedback for rejected candidates</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowSingleUploadModal(true)}
-            className="neumorphic-btn-primary px-4 py-2 flex items-center space-x-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Candidate Details</span>
-          </button>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="neumorphic-btn-primary px-4 py-2 flex items-center space-x-2"
-          >
-            <Download className="w-4 h-4" />
-            <span>Bulk Upload (Excel/CSV)</span>
-          </button>
-        </div>
-      </div>
-
-      {/* CandidateUploadModal for bulk upload */}
-      <CandidateUploadModal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        onUpload={handleUploadCandidates}
-      />
-
-      {/* Candidate List */}
-      <div className="neumorphic-table">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="neumorphic-table-header">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="p-4 border-b border-gray-200 font-semibold text-lg">Candidates</div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Candidate
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Position
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Rejection Stage
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {candidates.length === 0 ? (
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Position</th>
-                <th>Stage</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <td colSpan={5} className="text-center py-8 text-gray-500">No candidates found.</td>
               </tr>
-            </thead>
-            <tbody>
-              {visibleCandidates.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-500">No candidates found.</td>
+            ) : (
+              candidates.map(candidate => (
+                <tr key={candidate.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{candidate.name}</div>
+                      <div className="text-sm text-gray-500">{candidate.email}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {candidate.position}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {candidate.rejection_stage}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.feedback_status)}`}>
+                      {candidate.feedback_status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div className="flex items-center space-x-2">
+                      <button onClick={() => handleViewCandidate(candidate)} className="text-blue-600 hover:text-blue-800">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleEditCandidate(candidate)} className="text-green-600 hover:text-green-800">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleSendFeedback(candidate)} className="text-purple-600 hover:text-purple-800">
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              ) : (
-                visibleCandidates.map(candidate => (
-                  <tr key={candidate.id}>
-                    <td>{candidate.name}</td>
-                    <td>{candidate.email}</td>
-                    <td>{candidate.position}</td>
-                    <td>{candidate.rejection_stage}</td>
-                    <td>{candidate.status}</td>
-                    <td className="flex gap-2">
-                      <button
-                        className="neumorphic-btn-secondary px-2 py-1"
-                        onClick={() => {
-                          setModalCandidate(candidate);
-                          setShowModal(true);
-                        }}
-                      >
-                        <Eye className="w-4 h-4" /> View
-                      </button>
-                      <button
-                        className="neumorphic-btn-primary px-2 py-1"
-                        onClick={async () => {
-                          addNotification({ type: 'success', title: 'Feedback Sent', message: `Feedback sent to ${candidate.name}` });
-                        }}
-                      >
-                        <Send className="w-4 h-4" /> Send Feedback
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Single Candidate Upload Modal */}
-      {showSingleUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Add Candidate Details</h2>
-            <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="Name"
-                value={singleCandidate.name}
-                onChange={e => setSingleCandidate({ ...singleCandidate, name: e.target.value })}
-                className="w-full border px-3 py-2 rounded"
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={singleCandidate.email}
-                onChange={e => setSingleCandidate({ ...singleCandidate, email: e.target.value })}
-                className="w-full border px-3 py-2 rounded"
-              />
-              <input
-                type="text"
-                placeholder="Position"
-                value={singleCandidate.position}
-                onChange={e => setSingleCandidate({ ...singleCandidate, position: e.target.value })}
-                className="w-full border px-3 py-2 rounded"
-              />
-              <input
-                type="text"
-                placeholder="Rejection Stage"
-                value={singleCandidate.rejection_stage}
-                onChange={e => setSingleCandidate({ ...singleCandidate, rejection_stage: e.target.value })}
-                className="w-full border px-3 py-2 rounded"
-              />
-            </div>
-            <div className="flex justify-end space-x-2 mt-4">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={() => setShowSingleUploadModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={async () => {
-                  await handleUploadCandidates(singleCandidate);
-                  setShowSingleUploadModal(false);
-                  setSingleCandidate({ name: '', email: '', position: '', rejection_stage: '' });
-                }}
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
+      {selectedCandidate && (
+        <CandidateModal
+          candidate={selectedCandidate}
+          onClose={() => setSelectedCandidate(null)}
+        />
       )}
 
-      {/* Candidate Details Modal */}
-      {showModal && modalCandidate && (
-        <CandidateModal
-          candidate={modalCandidate}
-          onClose={() => setShowModal(false)}
+      {isFeedbackModalOpen && selectedCandidate && (
+        <FeedbackModal
+          isOpen={isFeedbackModalOpen}
+          onClose={() => setIsFeedbackModalOpen(false)}
+          candidate={selectedCandidate}
+        />
+      )}
+
+      {isEditModalOpen && selectedCandidate && (
+        <EditCandidateModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          candidate={selectedCandidate}
+          onSave={(updatedCandidate: any) => {
+            setCandidates((prev) =>
+              prev.map((c) => (c.id === updatedCandidate.id ? updatedCandidate : c))
+            );
+            setIsEditModalOpen(false);
+          }}
         />
       )}
     </div>
