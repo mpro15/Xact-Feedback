@@ -5,8 +5,15 @@ import { RecentCandidates } from '../../components/dashboard/RecentCandidates';
 import { QuickActions } from '../../components/dashboard/QuickActions';
 import { PerformanceChart } from '../../components/dashboard/PerformanceChart';
 import { supabase } from '../../lib/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleNavigateToCandidates = () => {
+    navigate('/candidates');
+  };
+
   const [stats, setStats] = useState([
     {
       title: 'Total Candidates',
@@ -14,7 +21,8 @@ export const DashboardPage: React.FC = () => {
       change: '',
       trend: 'up' as const,
       icon: Users,
-      color: 'blue' as const
+      color: 'blue' as const,
+      onClick: handleNavigateToCandidates // Add onClick handler
     },
     {
       title: 'Feedback Sent',
@@ -89,7 +97,8 @@ export const DashboardPage: React.FC = () => {
             change: '',
             trend: 'up' as const,
             icon: Users,
-            color: 'blue' as const
+            color: 'blue' as const,
+            onClick: handleNavigateToCandidates
           },
           {
             title: 'Feedback Sent',
@@ -134,7 +143,7 @@ export const DashboardPage: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
+          <StatsCard key={index} {...stat} onClick={stat.onClick} />
         ))}
       </div>
 

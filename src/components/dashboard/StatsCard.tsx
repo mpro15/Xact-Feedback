@@ -1,5 +1,6 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, DivideIcon as LucideIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react'; // Correctly import LucideIcon as a type
 
 interface StatsCardProps {
   title: string;
@@ -8,6 +9,7 @@ interface StatsCardProps {
   trend: 'up' | 'down';
   icon: LucideIcon;
   color: 'blue' | 'green' | 'purple' | 'orange';
+  onClick?: () => void; // Add optional onClick handler
 }
 
 export const StatsCard: React.FC<StatsCardProps> = ({
@@ -16,7 +18,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   change,
   trend,
   icon: Icon,
-  color
+  color,
+  onClick // Destructure onClick
 }) => {
   const colorClasses = {
     blue: 'text-primary-600',
@@ -26,7 +29,10 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   };
 
   return (
-    <div className="neumorphic-metric group">
+    <div
+      className="neumorphic-metric group cursor-pointer" // Add cursor-pointer for clickable effect
+      onClick={onClick} // Attach onClick handler
+    >
       <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
