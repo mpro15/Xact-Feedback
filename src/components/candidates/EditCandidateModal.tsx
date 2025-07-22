@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { Candidate } from '../../lib/supabase';
 
 interface EditCandidateModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface EditCandidateModalProps {
 }
 
 export const EditCandidateModal: React.FC<EditCandidateModalProps> = ({ isOpen, onClose, candidate, onSave }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Partial<Candidate>>({
     name: candidate.name,
     email: candidate.email,
     position: candidate.position,
@@ -22,15 +23,26 @@ export const EditCandidateModal: React.FC<EditCandidateModalProps> = ({ isOpen, 
   };
 
   const handleSave = async () => {
+    console.log('Saving candidate details...');
     const { data, error } = await supabase
       .from('candidates')
-      .update(formData)
+      .update(formData as Partial<Candidate>)
       .eq('id', candidate.id);
 
     if (error) {
       console.error('Error updating candidate:', error);
+    } else if (data) {
+      const updatedData = data as Candidate[];
+      if (updatedData.length > 0) {
+        console.log('Candidate updated successfully:', updatedData);
+        onSave(updatedData[0]);
+        console.log('Closing modal...');
+        onClose(); // Close the modal after saving changes
+      } else {
+        console.warn('No data returned from update operation.');
+      }
     } else {
-      onSave(data[0]);
+      console.warn('Data is null.');
     }
   };
 

@@ -11,6 +11,7 @@
 - Copy the UI for the recent candidates section from the dashboard page to the candidates page.
 - Ensure the status field is populated correctly.
 - Ensure the "Send Feedback" button works.
+- Fix issue where saving a candidate does not complete, even though the data is updated in the database.
 
 ## Dashboard Page
 - Clicking the top-left logo should navigate the user to the home page (dashboard page).
