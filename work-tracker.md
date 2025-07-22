@@ -8,7 +8,7 @@
 |                                          | Copy the UI for the recent candidates section from the dashboard page to the candidates page | [ ]   | Medium   | 4 hours        |            |
 |                                          | Ensure the status field is populated correctly | [ ]   | Medium   | 2 hours        |            |
 |                                          | Ensure the "Send Feedback" button works | [ ]   | High     | 3 hours        |            |
-| Dashboard Page                           | Clicking the top-left logo should navigate the user to the home page (dashboard page) | [ ]   | Medium   | 2 hours        |            |
+| Dashboard Page                           | Clicking the top-left logo should navigate the user to the home page (dashboard page) | [x]   | Medium   | 2 hours        |            |
 |                                          | Clicking the cards should navigate the user to relevant pages | [ ]   | High     | 3 hours        |            |
 |                                          | Ensure the Performance Overview chart shows real data (indicate 0 or no data if applicable) | [ ]   | High     | 4 hours        |            |
 |                                          | Ensure the buttons in the recent candidates pane are functional | [ ]   | Medium   | 3 hours        |            |

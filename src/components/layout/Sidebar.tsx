@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { X, LayoutDashboard, Users, BarChart3, Settings, MessageSquare, User, CreditCard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserProfileModal } from '../profile/UserProfileModal';
@@ -12,6 +12,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const [showProfile, setShowProfile] = React.useState(false);
+  const navigate = useNavigate();
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -39,10 +40,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {/* Header */}
           <div className="flex items-center justify-between h-20 px-6 border-b border-shadow/20">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-primary-400 to-primary-600 rounded-xl shadow-neumorphic-sm flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-primary-400 to-primary-600 rounded-xl shadow-neumorphic-sm flex items-center justify-center cursor-pointer" onClick={() => navigate('/dashboard')}>
                 <MessageSquare className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-800">Xact Feedback</span>
+              <span className="text-xl font-bold text-gray-800 cursor-pointer" onClick={() => navigate('/dashboard')}>Xact Feedback</span>
             </div>
             <button
               onClick={onClose}
