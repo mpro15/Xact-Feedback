@@ -1,17 +1,19 @@
 import React, { useState, useRef } from 'react';
 import { Menu, Bell, Search } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext'; // Import useAuth to access user context
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
-  const { user } = useAuth();
   const { notifications } = useNotification();
+  const { user } = useAuth(); // Access user context
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const handleIconClick = () => {
     setIsDropdownOpen((prev) => !prev);
@@ -85,14 +87,15 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             )}
           </div>
 
-          <div className="hidden sm:flex items-center space-x-3">
+          {/* User Name and Icon */}
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/user-profile')}>
             <div className="w-10 h-10 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full shadow-neumorphic-sm flex items-center justify-center">
               <span className="text-white font-semibold text-sm">
                 {user?.name?.charAt(0) || 'U'}
               </span>
             </div>
             <span className="text-sm font-semibold text-gray-800">
-              {user?.name}
+              {user?.name || 'User'}
             </span>
           </div>
         </div>

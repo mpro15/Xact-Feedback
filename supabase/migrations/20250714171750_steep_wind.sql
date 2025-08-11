@@ -1,4 +1,7 @@
-/*
+SELECT id, profile_image_url,
+       CONCAT('https://', '<your-supabase-project-ref>', '.supabase.co/storage/v1/object/public/profile-images/', REPLACE(profile_image_url, '<bucket-path-prefix>', '')) AS public_url
+FROM users
+WHERE profile_image_url IS NOT NULL;/*
   # Multi-tenant Schema for Xact Feedback Platform
 
   1. New Tables
@@ -43,26 +46,15 @@ CREATE TABLE IF NOT EXISTS users (
   email text UNIQUE NOT NULL,
   name text NOT NULL,
   role text DEFAULT 'recruiter' CHECK (role IN ('admin', 'recruiter', 'manager')),
-  avatar_url text,
   is_onboarded boolean DEFAULT false,
   last_login timestamptz,
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
--- User profiles table
-CREATE TABLE IF NOT EXISTS user_profiles (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  updated_at timestamptz DEFAULT now(),
   phone text,
   department text,
-  job_title text,
   bio text,
   timezone text DEFAULT 'UTC',
-  email_notifications boolean DEFAULT true,
-  weekly_reports boolean DEFAULT true,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  profile_image_url text
 );
 
 -- Candidates table
@@ -158,7 +150,6 @@ CREATE TABLE IF NOT EXISTS analytics_events (
 -- Enable Row Level Security
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_campaigns ENABLE ROW LEVEL SECURITY;
@@ -189,12 +180,6 @@ CREATE POLICY "Users can update own profile"
   ON users FOR UPDATE
   TO authenticated
   USING (id = auth.uid());
-
--- User profiles policies
-CREATE POLICY "Users can manage own profile"
-  ON user_profiles FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid());
 
 -- Candidates policies
 CREATE POLICY "Users can manage company candidates"
@@ -260,6 +245,5 @@ $$ language 'plpgsql';
 -- Triggers for updated_at
 CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_candidates_updated_at BEFORE UPDATE ON candidates FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_integrations_updated_at BEFORE UPDATE ON integrations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -18,7 +18,7 @@ INSERT INTO users (id, company_id, email, name, role, is_onboarded) VALUES
 ('550e8400-e29b-41d4-a716-446655440014', '550e8400-e29b-41d4-a716-446655440003', 'emma.davis@globalsolutions.com', 'Emma Davis', 'manager', true);
 
 -- Insert user profiles
-INSERT INTO user_profiles (user_id, phone, department, job_title, bio, timezone) VALUES
+INSERT INTO user_profiles (user_id, phone, department, role, bio, timezone) VALUES
 ('550e8400-e29b-41d4-a716-446655440011', '+1-555-0123', 'Human Resources', 'HR Director', 'Experienced HR professional focused on improving candidate experience', 'America/New_York'),
 ('550e8400-e29b-41d4-a716-446655440012', '+1-555-0124', 'Human Resources', 'Senior Recruiter', 'Passionate about connecting talent with opportunities', 'America/New_York'),
 ('550e8400-e29b-41d4-a716-446655440013', '+1-555-0125', 'Operations', 'Co-founder & COO', 'Building the future of work through innovative solutions', 'America/Los_Angeles'),

@@ -24,7 +24,7 @@ export interface User {
   email: string;
   name: string;
   role: 'admin' | 'recruiter' | 'manager';
-  avatar_url?: string;
+  profile_image_url?: string; // Replaced avatar_url with profile_image_url
   is_onboarded: boolean;
   last_login?: string;
   created_at: string;
@@ -36,7 +36,7 @@ export interface UserProfile {
   user_id: string;
   phone?: string;
   department?: string;
-  job_title?: string;
+  role?: string;
   bio?: string;
   timezone: string;
   email_notifications: boolean;

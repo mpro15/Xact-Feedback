@@ -15,6 +15,7 @@ import { CustomerSignupPage } from './pages/auth/CustomerSignupPage';
 import { UserSignupPage } from './pages/auth/UserSignupPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { SupportLoginPage } from './pages/support/SupportLoginPage';
+import UserProfilePage from './pages/profile/UserProfilePage';
 
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { CandidatesPage } from './pages/candidates/CandidatesPage';
@@ -90,6 +91,9 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
+
+                {/* User Profile Route - Modal */}
+                <Route path="/user-profile" element={<UserProfilePage />} />
 
                 {/* Redirect Root */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />

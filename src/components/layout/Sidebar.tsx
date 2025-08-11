@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { X, LayoutDashboard, Users, BarChart3, Settings, MessageSquare, User, CreditCard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,8 +10,6 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { user, logout } = useAuth();
-  const [showProfile, setShowProfile] = React.useState(false);
   const navigate = useNavigate();
 
   const navigation = [
@@ -74,46 +72,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               ))}
             </div>
           </nav>
-
-          {/* User Profile Section */}
-          <div className="mt-auto border-t border-shadow/20 p-4">
-            <div className="neumorphic-card p-4 mb-4">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full shadow-neumorphic-sm flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
-                    {user?.name?.charAt(0) || 'U'}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 truncate">{user?.name}</p>
-                  <p className="text-xs text-gray-600 truncate">{user?.role}</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <button 
-                  onClick={() => setShowProfile(true)}
-                  className="w-full neumorphic-btn flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-primary-700"
-                >
-                  <User className="w-4 h-4" />
-                  <span>Profile</span>
-                </button>
-                <button 
-                  onClick={logout}
-                  className="w-full neumorphic-btn flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-red-600"
-                >
-                  <span>Logout</span>
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
-
-      {/* Profile Modal */}
-      <UserProfileModal 
-        isOpen={showProfile}
-        onClose={() => setShowProfile(false)}
-      />
     </>
   );
 };
+
+const TopRightProfileSection: React.FC = () => {
+  const { logout } = useAuth();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  return (
+    <div className="absolute top-0 right-0 p-4 flex items-center space-x-4">
+      <button
+        className="neumorphic-btn flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-primary-700"
+        onClick={() => setIsProfileModalOpen(true)}
+      >
+        <User className="w-4 h-4" />
+        <span>Profile</span>
+      </button>
+
+      {isProfileModalOpen && (
+        <UserProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      )}
+
+      <button
+        className="neumorphic-btn flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-red-600"
+        onClick={logout}
+      >
+        <span>Logout</span>
+      </button>
+    </div>
+  );
+};
+
+export default TopRightProfileSection;
+export { TopRightProfileSection };
