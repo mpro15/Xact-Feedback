@@ -24,7 +24,7 @@
 |                                          | Enable clicking on the rejection state chart to show candidates |    Done    | Medium   | 3 hours        |            |
 |                                          | Fix errors related to country code |        | Medium   | 2 hours        |            |
 |                                          | Populate the rejection state field in the "Performance by Rejection State" chart |        | Medium   | 3 hours        |            |
-|                                          | Ensure the filter works in the rejection state chart |        | High     | 3 hours        |            |
+|                                          | Ensure the filter works in the rejection state chart |  Done      | High     | 3 hours        |            |
 | Billing Page                             | Ensure the "Top Up" button redirects to the payment gateway |        | High     | 3 hours        |            |
 |                                          | Test credit usage functionality |        | High     | 3 hours        |            |
 |                                          | Test the payment gateway |        | High     | 3 hours        |            |
