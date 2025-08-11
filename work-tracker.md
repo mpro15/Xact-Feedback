@@ -20,8 +20,8 @@
 |                                          | Remove settings from "Generate Feedback" or provide a link to the actual settings page |        | Medium   | 2 hours        |            |
 |                                          | Fix the "Download PDF" functionality |        | High     | 3 hours        |            |
 | Analytics Page                           | Ensure all cards display unique tables instead of the same table |        | Medium   | 4 hours        |            |
-|                                          | Improve the UI for rejection state distribution to be more graphic and visually appealing |        | Medium   | 3 hours        |            |
-|                                          | Enable clicking on the rejection state chart to show candidates |        | Medium   | 3 hours        |            |
+|                                          | Improve the UI for rejection state distribution to be more graphic and visually appealing | Done       | Medium   | 3 hours        |            |
+|                                          | Enable clicking on the rejection state chart to show candidates |    Done    | Medium   | 3 hours        |            |
 |                                          | Fix errors related to country code |        | Medium   | 2 hours        |            |
 |                                          | Populate the rejection state field in the "Performance by Rejection State" chart |        | Medium   | 3 hours        |            |
 |                                          | Ensure the filter works in the rejection state chart |        | High     | 3 hours        |            |
