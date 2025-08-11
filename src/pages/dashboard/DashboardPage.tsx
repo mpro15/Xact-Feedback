@@ -14,6 +14,10 @@ export const DashboardPage: React.FC = () => {
     navigate('/candidates');
   };
 
+  const handleNavigateToAnalytics = () => {
+    navigate('/analytics');
+  };
+
   const [stats, setStats] = useState([
     {
       title: 'Total Candidates',
@@ -30,7 +34,8 @@ export const DashboardPage: React.FC = () => {
       change: '+8%',
       trend: 'up' as const,
       icon: Mail,
-      color: 'green' as const
+      color: 'green' as const,
+      onClick: handleNavigateToAnalytics
     },
     {
       title: 'Email Open Rate',
@@ -38,7 +43,8 @@ export const DashboardPage: React.FC = () => {
       change: '+5.2%',
       trend: 'up' as const,
       icon: TrendingUp,
-      color: 'purple' as const
+      color: 'purple' as const,
+      onClick: handleNavigateToAnalytics
     },
     {
       title: 'Re-applications',
@@ -46,7 +52,8 @@ export const DashboardPage: React.FC = () => {
       change: '+23%',
       trend: 'up' as const,
       icon: UserMinus,
-      color: 'orange' as const
+      color: 'orange' as const,
+      onClick: handleNavigateToAnalytics
     }
   ]);
 
@@ -106,7 +113,8 @@ export const DashboardPage: React.FC = () => {
             change: '',
             trend: 'up' as const,
             icon: Mail,
-            color: 'green' as const
+            color: 'green' as const,
+            onClick: handleNavigateToAnalytics
           },
           {
             title: 'Email Open Rate',
@@ -114,7 +122,8 @@ export const DashboardPage: React.FC = () => {
             change: '',
             trend: 'up' as const,
             icon: TrendingUp,
-            color: 'purple' as const
+            color: 'purple' as const,
+            onClick: handleNavigateToAnalytics
           },
           {
             title: 'Re-applications',
@@ -122,7 +131,8 @@ export const DashboardPage: React.FC = () => {
             change: '',
             trend: 'up' as const,
             icon: UserMinus,
-            color: 'orange' as const
+            color: 'orange' as const,
+            onClick: handleNavigateToAnalytics
           }
         ]);
       } catch (err) {

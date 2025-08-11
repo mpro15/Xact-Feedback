@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, Edit, Send, MoreHorizontal } from 'lucide-react';
+import { Eye, Edit, Send } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { CandidateModal } from '../candidates/CandidateModal';
+import { FeedbackModal } from '../candidates/FeedbackModal';
+import { EditCandidateModal } from '../candidates/EditCandidateModal';
 
 export const RecentCandidates: React.FC = () => {
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchRecentCandidates() {
@@ -59,6 +65,20 @@ export const RecentCandidates: React.FC = () => {
     }
   };
 
+  const handleViewCandidate = (candidate: any) => {
+    setSelectedCandidate(candidate);
+  };
+
+  const handleEditCandidate = (candidate: any) => {
+    setSelectedCandidate(candidate);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSendFeedback = (candidate: any) => {
+    setSelectedCandidate(candidate);
+    setIsFeedbackModalOpen(true);
+  };
+
   if (loading) return <div className="p-4">Loading recent candidates...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
 
@@ -89,7 +109,7 @@ export const RecentCandidates: React.FC = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {candidates.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-500">No recent candidates found.</td>
+                <td colSpan={5} className="text-center py-8 text-gray-500">No recent candidates found.</td>
               </tr>
             ) : (
               candidates.map(candidate => (
@@ -113,17 +133,14 @@ export const RecentCandidates: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-800">
+                      <button onClick={() => handleViewCandidate(candidate)} className="text-blue-600 hover:text-blue-800">
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="text-green-600 hover:text-green-800">
+                      <button onClick={() => handleEditCandidate(candidate)} className="text-green-600 hover:text-green-800">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button className="text-purple-600 hover:text-purple-800">
+                      <button onClick={() => handleSendFeedback(candidate)} className="text-purple-600 hover:text-purple-800">
                         <Send className="w-4 h-4" />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-800">
-                        <MoreHorizontal className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -133,6 +150,35 @@ export const RecentCandidates: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {selectedCandidate && (
+        <CandidateModal
+          candidate={selectedCandidate}
+          onClose={() => setSelectedCandidate(null)}
+        />
+      )}
+
+      {isFeedbackModalOpen && selectedCandidate && (
+        <FeedbackModal
+          isOpen={isFeedbackModalOpen}
+          onClose={() => setIsFeedbackModalOpen(false)}
+          candidate={selectedCandidate}
+        />
+      )}
+
+      {isEditModalOpen && selectedCandidate && (
+        <EditCandidateModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          candidate={selectedCandidate}
+          onSave={(updatedCandidate: any) => {
+            setCandidates((prev) =>
+              prev.map((c) => (c.id === updatedCandidate.id ? updatedCandidate : c))
+            );
+            setIsEditModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };

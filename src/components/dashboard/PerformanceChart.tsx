@@ -1,18 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
 export const PerformanceChart: React.FC = () => {
-  const data = [
-    { month: 'Jan', feedbackSent: 145, openRate: 65 },
-    { month: 'Feb', feedbackSent: 167, openRate: 71 },
-    { month: 'Mar', feedbackSent: 189, openRate: 68 },
-    { month: 'Apr', feedbackSent: 201, openRate: 73 },
-    { month: 'May', feedbackSent: 234, openRate: 69 },
-    { month: 'Jun', feedbackSent: 267, openRate: 75 }
-  ];
+  const [data, setData] = useState<{ month: string; feedbackSent: number; openRate: number }[]>([]);
 
-  const maxFeedback = Math.max(...data.map(d => d.feedbackSent));
-  const maxRate = Math.max(...data.map(d => d.openRate));
+  useEffect(() => {
+    const fetchPerformanceData = async () => {
+      const { data: performanceData, error } = await supabase
+        .from('performance_metrics')
+        .select('month, feedback_sent, open_rate');
+
+      if (error) {
+        console.error('Error fetching performance data:', error);
+        setData([]);
+      } else {
+        setData(
+          performanceData.map((item) => ({
+            month: item.month,
+            feedbackSent: item.feedback_sent || 0,
+            openRate: item.open_rate || 0,
+          }))
+        );
+      }
+    };
+
+    fetchPerformanceData();
+  }, []);
+
+  const maxFeedback = Math.max(...data.map((d) => d.feedbackSent), 0);
+  const maxRate = Math.max(...data.map((d) => d.openRate), 0);
 
   return (
     <div className="neumorphic-chart">
@@ -29,35 +46,35 @@ export const PerformanceChart: React.FC = () => {
 
       <div className="neumorphic-world-map mb-6">
         <div className="h-64 flex items-end justify-between space-x-3">
-          {data.map((item, index) => (
-            <div key={index} className="flex-1 flex flex-col items-center space-y-2">
-              {/* Feedback Sent Bar */}
-              <div className="w-full flex justify-center">
-                <div className="w-8 bg-background rounded-lg shadow-neumorphic-inset overflow-hidden">
-                  <div
-                    className="neumorphic-chart-bar bg-gradient-to-t from-primary-500 to-primary-300 w-full transition-all duration-500 hover:from-primary-600 hover:to-primary-400"
-                    style={{ 
-                      height: `${(item.feedbackSent / maxFeedback) * 120}px`,
-                    }}
-                  />
+          {data.length > 0 ? (
+            data.map((item, index) => (
+              <div key={index} className="flex-1 flex flex-col items-center space-y-2">
+                {/* Feedback Sent Bar */}
+                <div className="w-full flex justify-center">
+                  <div className="w-8 bg-background rounded-lg shadow-neumorphic-inset overflow-hidden">
+                    <div
+                      className="neumorphic-chart-bar bg-gradient-to-t from-primary-500 to-primary-300 w-full transition-all duration-500 hover:from-primary-600 hover:to-primary-400"
+                      style={{ height: `${(item.feedbackSent / maxFeedback) * 120}px` }}
+                    />
+                  </div>
                 </div>
-              </div>
-              
-              {/* Open Rate Bar */}
-              <div className="w-full flex justify-center">
-                <div className="w-8 bg-background rounded-lg shadow-neumorphic-inset overflow-hidden">
-                  <div
-                    className="neumorphic-chart-bar bg-gradient-to-t from-green-500 to-green-300 w-full transition-all duration-500 hover:from-green-600 hover:to-green-400"
-                    style={{ 
-                      height: `${(item.openRate / maxRate) * 80}px`,
-                    }}
-                  />
+
+                {/* Open Rate Bar */}
+                <div className="w-full flex justify-center">
+                  <div className="w-8 bg-background rounded-lg shadow-neumorphic-inset overflow-hidden">
+                    <div
+                      className="neumorphic-chart-bar bg-gradient-to-t from-green-500 to-green-300 w-full transition-all duration-500 hover:from-green-600 hover:to-green-400"
+                      style={{ height: `${(item.openRate / maxRate) * 80}px` }}
+                    />
+                  </div>
                 </div>
+
+                <span className="text-xs font-medium text-gray-700 mt-3">{item.month}</span>
               </div>
-              
-              <span className="text-xs font-medium text-gray-700 mt-3">{item.month}</span>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-gray-600">No data available</p>
+          )}
         </div>
       </div>
 

@@ -13,6 +13,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { Modal } from '../../components/ui/Modal.tsx';
 
 export const AnalyticsPage: React.FC = () => {
   const [stats, setStats] = useState({
@@ -24,6 +25,9 @@ export const AnalyticsPage: React.FC = () => {
     funnel: {} as Record<string, number>,
     chartData: [] as any[],
   });
+  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchStats() {
@@ -31,13 +35,25 @@ export const AnalyticsPage: React.FC = () => {
       const sentRes = await supabase.from('email_campaigns').select('*', { count: 'exact', head: true });
       const totalSent = sentRes.count || 0;
       // Opened
-      const openRes = await supabase.from('email_campaigns').select('id', { count: 'exact', head: true }).not('opened_at', 'is', null);
+      const openRes = await supabase.from('email_campaigns').select('*', { count: 'exact', head: true }).not('opened_at', 'is', null);
       const opens = openRes.count || 0;
       // Clicked
-      const clickRes = await supabase.from('email_campaigns').select('id', { count: 'exact', head: true }).not('clicked_at', 'is', null);
+      const clickRes = await supabase.from('email_campaigns').select('*', { count: 'exact', head: true }).not('clicked_at', 'is', null);
       const clicks = clickRes.count || 0;
+      // Fetch the profile data
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        console.error('User not authenticated');
+        return;
+      }
+      const { data: profile } = await supabase.from('users').select('company_id').eq('id', user.id).single();
+      if (!profile?.company_id) {
+        console.error('No company ID found for the user');
+        return;
+      }
       // Funnel data: grouped count by rejection_stage
-      const funnelRes = await supabase.from('candidates').select('rejection_stage');
+      const funnelRes = await supabase.from('candidates').select('country, city, rejection_stage').eq('company_id', profile.company_id);
+
       const funnel: Record<string, number> = {};
       if (funnelRes.data) {
         funnelRes.data.forEach((row: any) => {
@@ -59,6 +75,26 @@ export const AnalyticsPage: React.FC = () => {
     }
     fetchStats();
   }, []);
+
+  const handleBarClick = async (data: any) => {
+    if (data && data.stage) {
+      setSelectedStage(data.stage);
+      setIsModalOpen(true);
+
+      // Fetch candidates for the selected rejection stage
+      const { data: candidateData, error } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('rejection_stage', data.stage);
+
+      if (error) {
+        console.error('Error fetching candidates:', error);
+        setCandidates([]);
+      } else {
+        setCandidates(candidateData || []);
+      }
+    }
+  };
 
   const candidateCount = Object.values(stats.funnel).reduce((a, b) => (a as number) + (b as number), 0);
 
@@ -83,12 +119,27 @@ export const AnalyticsPage: React.FC = () => {
             <div>
               <h3 className="text-lg font-semibold mb-4">Rejection Stage Distribution</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats.chartData}>
+                <BarChart
+                  data={stats.chartData}
+                  onClick={(e) => {
+                    if (e && e.activeLabel) {
+                      const clickedStage = stats.chartData.find((item) => item.stage === e.activeLabel);
+                      if (clickedStage) handleBarClick(clickedStage);
+                    }
+                  }}
+                >
                   <XAxis dataKey="stage" />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="count" fill="#3b82f6" name="Candidates" />
+                  <Bar dataKey="count" fill="url(#colorUv)" name="Candidates">
+                    <defs>
+                      <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
+                      </linearGradient>
+                    </defs>
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -121,7 +172,25 @@ export const AnalyticsPage: React.FC = () => {
         <WorldMap />
       </div>
       {/* Performance Table */}
-      <PerformanceTable />
+      <PerformanceTable chartData={stats.chartData} />
+      {/* Modal for showing candidates */}
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+          <h3 className="text-lg font-semibold mb-4">Candidates in {selectedStage}</h3>
+          {candidates.length > 0 ? (
+            <ul className="space-y-2">
+              {candidates.map((candidate) => (
+                <li key={candidate.id} className="p-2 border rounded-md">
+                  <div className="font-medium text-gray-900">{candidate.name}</div>
+                  <div className="text-sm text-gray-600">{candidate.email}</div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-600">No candidates found for this stage.</p>
+          )}
+        </Modal>
+      )}
     </div>
   );
 };

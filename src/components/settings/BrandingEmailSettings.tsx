@@ -87,36 +87,6 @@ export const BrandingEmailSettings: React.FC = () => {
     }
   };
 
-  const handleConnectEmail = async () => {
-    if (!formData.emailProvider || !formData.apiKey) {
-      addNotification({
-        type: 'error',
-        title: 'Missing Information',
-        message: 'Please select an email provider and enter your API key.'
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setFormData(prev => ({ ...prev, isEmailConnected: true }));
-      addNotification({
-        type: 'success',
-        title: 'Email Connected',
-        message: `Successfully connected to ${formData.emailProvider}`
-      });
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Connection Failed',
-        message: 'Failed to connect email service. Please check your API key.'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-8">
       {/* Branding Section */}
@@ -262,53 +232,6 @@ export const BrandingEmailSettings: React.FC = () => {
           Configure how feedback emails are sent to candidates
         </p>
 
-        {/* Email Service Connection */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-3">Email Service Connection</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Provider
-              </label>
-              <select
-                value={formData.emailProvider}
-                onChange={(e) => setFormData(prev => ({ ...prev, emailProvider: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select Provider</option>
-                <option value="sendgrid">SendGrid</option>
-                <option value="mailgun">Mailgun</option>
-                <option value="amazonses">Amazon SES</option>
-                <option value="postmark">Postmark</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                API Key
-              </label>
-              <input
-                type="password"
-                value={formData.apiKey}
-                onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your API key"
-              />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center space-x-3">
-            <button
-              onClick={handleConnectEmail}
-              disabled={isLoading || formData.isEmailConnected}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Connecting...' : formData.isEmailConnected ? 'Connected' : 'Connect Email Service'}
-            </button>
-            {formData.isEmailConnected && (
-              <span className="text-sm text-green-600 font-medium">✓ Email service connected</span>
-            )}
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -319,7 +242,7 @@ export const BrandingEmailSettings: React.FC = () => {
               value={formData.senderName}
               onChange={(e) => setFormData(prev => ({ ...prev, senderName: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="HR Team"
+              placeholder="Your Name"
             />
           </div>
 
@@ -332,10 +255,12 @@ export const BrandingEmailSettings: React.FC = () => {
               value={formData.senderEmail}
               onChange={(e) => setFormData(prev => ({ ...prev, senderEmail: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="hr@company.com"
+              placeholder="you@company.com"
             />
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Reply-To Email
@@ -358,15 +283,12 @@ export const BrandingEmailSettings: React.FC = () => {
               value={formData.subjectTemplate}
               onChange={(e) => setFormData(prev => ({ ...prev, subjectTemplate: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Thank you for your application - {candidate_name}"
+              placeholder="Subject line for feedback emails"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Available variables: {'{candidate_name}, {position}, {company_name}'}
-            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email Signature
@@ -374,9 +296,9 @@ export const BrandingEmailSettings: React.FC = () => {
             <textarea
               value={formData.emailSignature}
               onChange={(e) => setFormData(prev => ({ ...prev, emailSignature: e.target.value }))}
-              rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Best regards,&#10;HR Team&#10;Your Company"
+              rows={3}
             />
           </div>
 
@@ -384,12 +306,12 @@ export const BrandingEmailSettings: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Unsubscribe Text
             </label>
-            <textarea
+            <input
+              type="text"
               value={formData.unsubscribeText}
               onChange={(e) => setFormData(prev => ({ ...prev, unsubscribeText: e.target.value }))}
-              rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="If you no longer wish to receive these emails, you can unsubscribe here."
+              placeholder="Unsubscribe instructions"
             />
           </div>
         </div>

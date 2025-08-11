@@ -3,6 +3,8 @@ import { Menu, Bell, Search } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext'; // Import useAuth to access user context
 import { UserProfileModal } from '../profile/UserProfileModal'; // Correct the import path for UserProfileModal
+import { useFilters } from '../../contexts/FilterContext';
+import { supabase } from '../../lib/supabaseClient';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -11,8 +13,10 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { notifications } = useNotification();
   const { user } = useAuth(); // Access user context
+  const { filters, updateCandidateFilters } = useFilters();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State to manage profile modal open/close
+  const [searchResults, setSearchResults] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleIconClick = () => {
@@ -31,6 +35,28 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     setIsProfileModalOpen(false);
   };
 
+  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const searchTerm = e.target.value;
+    updateCandidateFilters({ searchTerm });
+
+    if (searchTerm.length > 2) {
+      // Query the database using Supabase to fetch public data
+      const { data, error } = await supabase
+        .from('public_data')
+        .select('*')
+        .ilike('name', `%${searchTerm}%`);
+
+      if (error) {
+        console.error('Error fetching search results:', error);
+        setSearchResults([]);
+      } else {
+        setSearchResults(data.map((item) => item.name));
+      }
+    } else {
+      setSearchResults([]);
+    }
+  };
+
   return (
     <header className="neumorphic-header h-20 lg:border-l lg:border-shadow/20">
       <div className="flex items-center justify-between h-full px-6">
@@ -42,13 +68,24 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <Menu className="w-5 h-5 text-gray-600" />
           </button>
 
-          <div className="neumorphic-search hidden sm:flex items-center px-4 py-3 w-80">
+          <div className="neumorphic-search hidden sm:flex items-center px-4 py-3 w-80 relative">
             <Search className="w-4 h-4 text-gray-500 mr-3" />
             <input
               type="text"
-              placeholder="Search candidates..."
+              placeholder="Search candidates, settings..."
               className="flex-1 bg-transparent border-0 outline-none text-gray-700 placeholder-gray-500"
+              value={filters.candidates.searchTerm}
+              onChange={handleSearchChange}
             />
+            {searchResults.length > 0 && (
+              <ul className="absolute top-full left-0 w-full bg-white shadow-lg rounded-lg mt-2 z-50">
+                {searchResults.map((result, index) => (
+                  <li key={index} className="p-2 hover:bg-gray-100 cursor-pointer">
+                    {result}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 

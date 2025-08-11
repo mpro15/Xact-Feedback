@@ -3,11 +3,22 @@ import { ArrowUp, ArrowDown, Download, Filter } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 import { supabase } from '../../lib/supabaseClient';
 
-export const PerformanceTable: React.FC = () => {
+interface PerformanceTableProps {
+  chartData: any[];
+}
+
+export const PerformanceTable: React.FC<PerformanceTableProps> = ({ chartData }) => {
   const { addNotification } = useNotification();
-  const [performanceData, setPerformanceData] = useState<any[]>([]);
+  const [performanceData, setPerformanceData] = useState<any[]>(chartData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterStage, setFilterStage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (chartData) {
+      setPerformanceData(chartData);
+    }
+  }, [chartData]);
 
   useEffect(() => {
     async function fetchPerformanceData() {
@@ -108,6 +119,16 @@ export const PerformanceTable: React.FC = () => {
     });
   };
 
+  const handleFilter = (stage: string) => {
+    setFilterStage(stage);
+    const filteredData = performanceData.filter(row => row.stage === stage);
+    setPerformanceData(filteredData);
+  };
+
+  const displayedData = filterStage
+    ? performanceData.filter(row => row.stage === filterStage)
+    : performanceData;
+
   if (loading) return <div className="p-4">Loading performance data...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
 
@@ -119,7 +140,10 @@ export const PerformanceTable: React.FC = () => {
           <p className="text-sm text-gray-600 mt-1">Detailed metrics for each interview stage</p>
         </div>
         <div className="flex items-center space-x-2">
-          <button className="p-2 text-gray-500 hover:text-gray-700">
+          <button
+            onClick={() => handleFilter('Specific Stage')} // Replace 'Specific Stage' with the desired stage
+            className="p-2 text-gray-500 hover:text-gray-700"
+          >
             <Filter className="w-4 h-4" />
           </button>
           <button
@@ -162,7 +186,7 @@ export const PerformanceTable: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {performanceData.map((row, index) => (
+            {displayedData.map((row, index) => (
               <tr 
                 key={index} 
                 onClick={() => handleRowClick(row.stage)}
@@ -172,10 +196,10 @@ export const PerformanceTable: React.FC = () => {
                   {row.rejection_stage}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {row.candidates.toLocaleString()}
+                  {row.candidates ? row.candidates.toLocaleString() : 'N/A'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {row.feedbackSent.toLocaleString()}
+                  {row.feedbackSent ? row.feedbackSent.toLocaleString() : 'N/A'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {row.openRate}%
