@@ -28,8 +28,8 @@
 | Billing Page                             | Ensure the "Top Up" button redirects to the payment gateway |        | High     | 3 hours        |            |
 |                                          | Test credit usage functionality |        | High     | 3 hours        |            |
 |                                          | Test the payment gateway |        | High     | 3 hours        |            |
-| Settings Page                            | Remove the first section (including SMTP settings) |        | Medium   | 2 hours        |            |
-|                                          | Remove email configuration settings |        | Medium   | 2 hours        |            |
+| Settings Page                            | Remove the first section (including SMTP settings) |   Done     | Medium   | 2 hours        |            |
+|                                          | Remove email configuration settings | Done       | Medium   | 2 hours        |            |
 |                                          | Fix issue where updating the company logo does not update the preview |        | Medium   | 3 hours        |            |
 |                                          | Ensure the "Update All Settings" button works correctly in Behavior Controls, Privacy, and ATS Integration sections |        | High     | 4 hours        |            |
 |                                          | Make the "Preview and Test" section similar to the candidate page's "Generate Feedback" interface |        | Medium   | 3 hours        |            |
