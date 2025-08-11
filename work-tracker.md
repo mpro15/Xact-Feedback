@@ -12,7 +12,7 @@
 | Dashboard Page                           | Clicking the top-left logo should navigate the user to the home page (dashboard page) | Done   | Medium   | 2 hours        |            |
 |                                          | Clicking the cards should navigate the user to relevant pages | Done   | High     | 3 hours        |            |
 |                                          | Ensure the Performance Overview chart shows real data (indicate 0 or no data if applicable) |  Done      | High     | 4 hours        |            |
-|                                          | Ensure the buttons in the recent candidates pane are functional |        | Medium   | 3 hours        |            |
+|                                          | Ensure the buttons in the recent candidates pane are functional |  Done      | Medium   | 3 hours        |            |
 | View Candidate Modal                     | Generate AI feedback using OpenAI API key instead of mock data |        | High     | 5 hours        |            |
 |                                          | Ensure email preview, edit, and send buttons work |        | High     | 4 hours        |            |
 |                                          | Replace mock analytics data with real data |        | High     | 4 hours        |            |
