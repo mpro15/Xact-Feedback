@@ -23,7 +23,7 @@
 |                                          | Improve the UI for rejection state distribution to be more graphic and visually appealing | Done       | Medium   | 3 hours        |            |
 |                                          | Enable clicking on the rejection state chart to show candidates |    Done    | Medium   | 3 hours        |            |
 |                                          | Fix errors related to country code |        | Medium   | 2 hours        |            |
-|                                          | Populate the rejection state field in the "Performance by Rejection State" chart |        | Medium   | 3 hours        |            |
+|                                          | Populate the rejection state field in the "Performance by Rejection State" chart |    Done    | Medium   | 3 hours        |            |
 |                                          | Ensure the filter works in the rejection state chart |  Done      | High     | 3 hours        |            |
 | Billing Page                             | Ensure the "Top Up" button redirects to the payment gateway |        | High     | 3 hours        |            |
 |                                          | Test credit usage functionality |        | High     | 3 hours        |            |
@@ -33,7 +33,7 @@
 |                                          | Fix issue where updating the company logo does not update the preview |        | Medium   | 3 hours        |            |
 |                                          | Ensure the "Update All Settings" button works correctly in Behavior Controls, Privacy, and ATS Integration sections |        | High     | 4 hours        |            |
 |                                          | Make the "Preview and Test" section similar to the candidate page's "Generate Feedback" interface |        | Medium   | 3 hours        |            |
-| Header Section                           | Fix the profile icon functionality in the top-right header section (determine if it is needed) |        | Medium   | 2 hours        |            |
+| Header Section                           | Fix the profile icon functionality in the top-right header section  | Done       | Medium   | 2 hours        |            |
 |                                          | Ensure the search bar in the header works |        | High     | 3 hours        |            |
 | Onboarding Page                          | Resolve issues preventing the onboarding page from functioning |        | High     | 4 hours        |            |
 | Email Integration                        | Implement email integration |        | High     | 5 hours        |            |
