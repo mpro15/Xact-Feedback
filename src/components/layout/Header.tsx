@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Menu, Bell, Search } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext'; // Import useAuth to access user context
-import { useNavigate } from 'react-router-dom';
+import { UserProfileModal } from '../profile/UserProfileModal'; // Correct the import path for UserProfileModal
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -12,8 +12,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { notifications } = useNotification();
   const { user } = useAuth(); // Access user context
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State to manage profile modal open/close
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
 
   const handleIconClick = () => {
     setIsDropdownOpen((prev) => !prev);
@@ -21,6 +21,14 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   const handleMouseLeave = () => {
     setIsDropdownOpen(false);
+  };
+
+  const handleProfileClick = () => {
+    setIsProfileModalOpen(true);
+  };
+
+  const handleProfileClose = () => {
+    setIsProfileModalOpen(false);
   };
 
   return (
@@ -88,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </div>
 
           {/* User Name and Icon */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/user-profile')}>
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={handleProfileClick}>
             <div className="w-10 h-10 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full shadow-neumorphic-sm flex items-center justify-center">
               <span className="text-white font-semibold text-sm">
                 {user?.name?.charAt(0) || 'U'}
@@ -100,6 +108,13 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </div>
         </div>
       </div>
+
+      {/* User Profile Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <UserProfileModal isOpen={isProfileModalOpen} onClose={handleProfileClose} />
+        </div>
+      )}
     </header>
   );
 };

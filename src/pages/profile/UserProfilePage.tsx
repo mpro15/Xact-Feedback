@@ -12,7 +12,7 @@ const UserProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-100 flex items-center justify-center">
+    <div className="flex items-center justify-center w-full h-full">
       <UserProfileModal isOpen={isModalOpen} onClose={handleClose} />
     </div>
   );
