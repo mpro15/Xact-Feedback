@@ -2,7 +2,8 @@
 
 | Work               | Sub-Item                                                                 | State       | Priority | Estimated Time | Due Date   |
 |--------------------|--------------------------------------------------------------------------|-------------|----------|----------------|------------|
-| Profile Section    | Fix issue where uploading a photo vanishes on reload                     |             | Medium   | 2 hours        |            |
+| Profile Section    | Fix issue where uploading a photo vanishes on reload                     |    Done         | Medium   | 2 hours        |            |
+|                    | Fix the email change capability by the user                              | Pending  | High |  2 hours |
 | Candidates Page    | Resolve errors in candidate upload functionality                         |             | High     | 3 hours        |            |
 |                    | Resolve errors in bulk candidate upload functionality                    |             | High     | 3 hours        |            |
 |                    | Copy the UI for the recent candidates section from the dashboard page    | Done        | Medium   | 4 hours        |            |
