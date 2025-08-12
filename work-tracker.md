@@ -1,25 +1,18 @@
 # Work Tracker
 
-| Work                                      | Sub-Item                                   | State | Priority | Estimated Time | Due Date   |
-|------------------------------------------|-------------------------------------------|-------|----------|----------------|------------|
-| Profile Section                          | Fix issue where uploading a photo vanishes on reload |        | Medium   | 2 hours        |            |
-| Candidates Page                          | Resolve errors in candidate upload functionality |        | High     | 3 hours        |            |
-|                                          | Resolve errors in bulk candidate upload functionality |        | High     | 3 hours        |            |
-|                                          | Copy the UI for the recent candidates section from the dashboard page to the candidates page | Done   | Medium   | 4 hours        |            |
-|                                          | Ensure the status field is populated correctly |        | Medium   | 2 hours        |            |
-|                                          | Ensure the "Send Feedback" button works |        | High     | 3 hours        |            |
-|                                          | Fix issue where saving a candidate does not complete, even though the data is updated in the database |        | High     | 2 hours        |            |
-| Dashboard Page                           | Clicking the top-left logo should navigate the user to the home page (dashboard page) | Done   | Medium   | 2 hours        |            |
-<<<<<<< HEAD
-|                                          | Clicking the cards should navigate the user to relevant pages | In progressqq
-   | High     | 3 hours        |            |
-|                                          | Ensure the Performance Overview chart shows real data (indicate 0 or no data if applicable) |        | High     | 4 hours        |            |
-|                                          | Ensure the buttons in the recent candidates pane are functional |        | Medium   | 3 hours        |            |
-=======
-|                                          | Clicking the cards should navigate the user to relevant pages | Done   | High     | 3 hours        |            |
-|                                          | Ensure the Performance Overview chart shows real data (indicate 0 or no data if applicable) |  Done      | High     | 4 hours        |            |
-|                                          | Ensure the buttons in the recent candidates pane are functional |  Done      | Medium   | 3 hours        |            |
->>>>>>> c7186f3d6ade1f1607fd7ee97020d7542701f198
+| Work               | Sub-Item                                                                 | State       | Priority | Estimated Time | Due Date   |
+|--------------------|--------------------------------------------------------------------------|-------------|----------|----------------|------------|
+| Profile Section    | Fix issue where uploading a photo vanishes on reload                     |             | Medium   | 2 hours        |            |
+| Candidates Page    | Resolve errors in candidate upload functionality                         |             | High     | 3 hours        |            |
+|                    | Resolve errors in bulk candidate upload functionality                    |             | High     | 3 hours        |            |
+|                    | Copy the UI for the recent candidates section from the dashboard page    | Done        | Medium   | 4 hours        |            |
+|                    | Ensure the status field is populated correctly                           |             | Medium   | 2 hours        |            |
+|                    | Ensure the "Send Feedback" button works                                 |             | High     | 3 hours        |            |
+|                    | Fix issue where saving a candidate does not complete, even though the data is updated in the database |             | High     | 2 hours        |            |
+| Dashboard Page     | Clicking the top-left logo should navigate the user to the home page     | Done        | Medium   | 2 hours        |            |
+|                    | Clicking the cards should navigate the user to relevant pages            | Done        | High     | 3 hours        |            |
+|                    | Ensure the Performance Overview chart shows real data (indicate 0 or no data if applicable) | Done        | High     | 4 hours        |            |
+|                    | Ensure the buttons in the recent candidates pane are functional          | Done        | Medium   | 3 hours        |            |
 | View Candidate Modal                     | Generate AI feedback using OpenAI API key instead of mock data |        | High     | 5 hours        |            |
 |                                          | Ensure email preview, edit, and send buttons work |        | High     | 4 hours        |            |
 |                                          | Replace mock analytics data with real data |        | High     | 4 hours        |            |
