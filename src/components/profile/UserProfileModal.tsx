@@ -22,12 +22,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    phone: '+1-555-0123',
-    department: 'Human Resources',
-    role: 'HR Director',
-    bio: 'Experienced HR professional focused on improving candidate experience and building strong employer brands.',
-    timezone: 'America/New_York',
-    profile_image_url: user?.profile_image_url || null // Updated to use profile_image_url
+    phone: user?.phone || '',
+    department: user?.department || '',
+    role: user?.role || '',
+    bio: user?.bio || '',
+    timezone: user?.timezone || 'America/New_York',
+    profile_image_url: user?.profile_image_url || '' // Updated to use empty string instead of null
   });
 
   // Fix for fetching profile data
@@ -69,16 +69,29 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
   if (!isOpen) return null;
 
+  const allowedRoles = ['HR Director', 'Recruiter', 'Manager', 'Employee']; // Add all valid roles here
+
   const handleSave = async () => {
     setIsLoading(true);
     try {
       // Validate profile data before sending
+      if (!allowedRoles.includes(profileData.role)) {
+        addNotification({
+          type: 'error',
+          title: 'Invalid Role',
+          message: 'The selected role is not valid. Please choose a valid role.'
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const validProfileData = {
+        name: profileData.name || null,
+        email: profileData.email || null,
         phone: profileData.phone || null,
         department: profileData.department || null,
         role: profileData.role || null, // Updated from jobTitle to role
         bio: profileData.bio || null,
-        timezone: profileData.timezone || null,
         profile_image_url: profileData.profile_image_url || null,
       };
 
@@ -87,8 +100,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
       const { data, error } = await supabase
         .from('users')
-        .update(validProfileData)
-        .eq('id', user?.id)
+        .upsert({
+          id: user?.id, // Ensure the user ID is included for upsert
+          ...validProfileData,
+        }, { onConflict: 'id' })
         .select();
 
       if (error) {
@@ -135,7 +150,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     }
 
     try {
-      const filePath = `${user?.id}/${file.name}`;
+      const filePath = `${user?.id}/${encodeURIComponent(file.name)}`; // Encode file name to handle special characters
+      console.log('Uploading file to:', filePath);
 
       const { error: storageError } = await supabase.storage
         .from('profile-images')
@@ -145,29 +161,43 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         });
 
       if (storageError) {
-        console.error('Storage error:', storageError);
+        console.error('Storage error:', storageError.message || storageError);
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage
+      const { data: publicUrlData, error: publicUrlError } = await supabase.storage
         .from('profile-images')
         .getPublicUrl(filePath);
 
-      if (!publicUrlData || !publicUrlData.publicUrl) {
-        console.error('Error fetching public URL');
+      if (publicUrlError) {
+        console.error('Error fetching public URL:', publicUrlError.message || publicUrlError);
         return;
       }
 
-      const { error: dbError } = await supabase
-        .from('users')
-        .upsert({ id: user?.id, profile_image_url: publicUrlData.publicUrl }, { onConflict: 'id' });
-
-      if (dbError) {
-        console.error('Database error:', dbError);
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        console.error('Public URL data is invalid');
         return;
       }
 
       setProfileData((prev) => ({ ...prev, profile_image_url: publicUrlData.publicUrl }));
+
+      const { error: dbError } = await supabase
+        .from('users')
+        .upsert({
+          id: user?.id,
+          profile_image_url: publicUrlData.publicUrl,
+        }, { onConflict: 'id' });
+
+      if (dbError) {
+        console.error('Database error:', dbError.message || dbError);
+        return;
+      }
+
+      addNotification({
+        type: 'success',
+        title: 'Image Uploaded',
+        message: 'Your profile image has been updated successfully.'
+      });
     } catch (err) {
       console.error('Unexpected error uploading profile image:', err);
     }
@@ -287,12 +317,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Job Title
               </label>
-              <input
-                type="text"
+              <select
                 value={profileData.role}
-                onChange={(e) => setProfileData(prev => ({ ...prev, role: e.target.value }))}
+                onChange={(e) => setProfileData((prev) => ({ ...prev, role: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              />
+              >
+                <option value="" disabled>Select a role</option>
+                {allowedRoles.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
             </div>
 
             <div>

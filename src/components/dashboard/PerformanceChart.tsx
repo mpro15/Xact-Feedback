@@ -12,12 +12,12 @@ export const PerformanceChart: React.FC = () => {
         .select('month, feedback_sent, open_rate');
 
       if (error) {
-        console.error('Error fetching performance data:', error);
+        console.error('Error fetching performance data:', error.message || error);
         setData([]);
-      } else {
+      } else if (performanceData) {
         setData(
           performanceData.map((item) => ({
-            month: item.month,
+            month: item.month || 'Unknown',
             feedbackSent: item.feedback_sent || 0,
             openRate: item.open_rate || 0,
           }))
