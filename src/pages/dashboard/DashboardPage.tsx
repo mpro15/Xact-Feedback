@@ -30,8 +30,8 @@ export const DashboardPage: React.FC = () => {
     },
     {
       title: 'Feedback Sent',
-      value: '1,923',
-      change: '+8%',
+      value: 'Loading...', // Changed from hardcoded value
+      change: '',
       trend: 'up' as const,
       icon: Mail,
       color: 'green' as const,
@@ -39,8 +39,8 @@ export const DashboardPage: React.FC = () => {
     },
     {
       title: 'Email Open Rate',
-      value: '67.3%',
-      change: '+5.2%',
+      value: 'Loading...', // Changed from hardcoded value
+      change: '',
       trend: 'up' as const,
       icon: TrendingUp,
       color: 'purple' as const,
@@ -48,8 +48,8 @@ export const DashboardPage: React.FC = () => {
     },
     {
       title: 'Re-applications',
-      value: '156',
-      change: '+23%',
+      value: 'Loading...', // Changed from hardcoded value
+      change: '',
       trend: 'up' as const,
       icon: UserMinus,
       color: 'orange' as const,
@@ -61,6 +61,7 @@ export const DashboardPage: React.FC = () => {
     async function fetchDashboardStats() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        console.log('Current user:', user);
         if (!user) return;
 
         const { data: profile } = await supabase
@@ -68,7 +69,7 @@ export const DashboardPage: React.FC = () => {
           .select('company_id')
           .eq('id', user.id)
           .single();
-
+        console.log('User profile:', profile);
         if (!profile?.company_id) return;
 
         const [candidatesCount, feedbackSentCount, openRateData, reapplicationsCount] = await Promise.all([

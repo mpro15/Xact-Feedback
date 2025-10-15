@@ -78,30 +78,44 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   );
 };
 
+// Merged the top-right corner user profile button and the user button into a single component, ensuring dropdown and modal functionality are intact
 const TopRightProfileSection: React.FC = () => {
   const { logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
-    <div className="absolute top-0 right-0 p-4 flex items-center space-x-4">
+    <div className="absolute top-0 right-0 p-4 flex items-center space-x-4 z-50" style={{ overflow: 'visible' }}>
       <button
         className="neumorphic-btn flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-primary-700"
-        onClick={() => setIsProfileModalOpen(true)}
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
       >
         <User className="w-4 h-4" />
-        <span>Profile</span>
+        <span>User</span>
       </button>
 
-      {isProfileModalOpen && (
-        <UserProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      {isDropdownOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50">
+          <button
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            onClick={() => setIsProfileModalOpen(true)}
+          >
+            Profile
+          </button>
+          <button
+            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100"
+            onClick={async () => {
+              await logout();
+              navigate('/login');
+            }}
+          >
+            Logout
+          </button>
+        </div>
       )}
 
-      <button
-        className="neumorphic-btn flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-red-600"
-        onClick={logout}
-      >
-        <span>Logout</span>
-      </button>
+      <UserProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
     </div>
   );
 };

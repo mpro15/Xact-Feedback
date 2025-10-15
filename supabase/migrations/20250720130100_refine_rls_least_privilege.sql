@@ -17,10 +17,10 @@ ON companies
 FOR SELECT
 USING (id = (SELECT company_id FROM users WHERE id = auth.uid()));
 
--- Support/Admin: Allow support users to select all (if needed)
+-- Support/Admin: Allow support users to select all (if needed)  
 CREATE POLICY "Support can select all"
 ON users
 FOR SELECT
-USING (EXISTS (SELECT 1 FROM support_logins WHERE user_id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM support_logins WHERE email = auth.email()));
 
 -- END OF FILE

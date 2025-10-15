@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Send, FileText, Download, Eye, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Send, FileText, Download, Eye, CheckCircle, AlertCircle, Edit, Save, RefreshCw } from 'lucide-react';
 import { FeedbackService } from '../../services/feedbackService';
 import { useNotification } from '../../contexts/NotificationContext';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
@@ -21,13 +21,56 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedFeedback, setGeneratedFeedback] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('preview');
+  
+  // New states for AI feedback modification
+  const [aiGeneratedContent, setAiGeneratedContent] = useState<string>('');
+  const [isEditingFeedback, setIsEditingFeedback] = useState(false);
+  const [editedFeedback, setEditedFeedback] = useState<string>('');
+  const [feedbackHighlights, setFeedbackHighlights] = useState<string[]>([]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Load any existing feedback if available
+  useEffect(() => {
+    if (candidate?.id) {
+      fetchExistingFeedback();
+    }
+  }, [candidate]);
+
+  const fetchExistingFeedback = async () => {
+    try {
+      const { data } = await FeedbackService.getFeedbackDraft(candidate.id);
+      if (data) {
+        setAiGeneratedContent(data.content || '');
+        setEditedFeedback(data.content || '');
+        setFeedbackHighlights(data.highlights || []);
+      }
+    } catch (error) {
+      console.error('Error fetching existing feedback:', error);
+    }
+  };
 
   if (!isOpen) return null;
 
   const handleGenerateFeedback = async () => {
     setIsGenerating(true);
     try {
-      const result = await FeedbackService.generateAndSendFeedback(candidate.id);
+      // First generate AI feedback if not already available
+      if (!aiGeneratedContent) {
+        const jobDescription = `${candidate.position} position requiring experience in ${candidate.rejection_stage.toLowerCase()}`;
+        const aiResult = await FeedbackService.generateFeedback(candidate.id, jobDescription);
+        
+        if (aiResult) {
+          setAiGeneratedContent(aiResult.summary || '');
+          setEditedFeedback(aiResult.summary || '');
+          
+          // Extract highlights from the feedback content
+          const highlights = extractHighlightsFromContent(aiResult.summary || '');
+          setFeedbackHighlights(highlights);
+        }
+      }
+      
+      // Then proceed with sending feedback
+      const result = await FeedbackService.generateAndSendFeedback(candidate.id, editedFeedback, feedbackHighlights);
       
       if (result.success) {
         setGeneratedFeedback({
@@ -59,12 +102,247 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
       setIsGenerating(false);
     }
   };
+  
+  // Function to extract highlights from the feedback content
+  const extractHighlightsFromContent = (content: string): string[] => {
+    const lines = content.split('\n');
+    const highlights = lines
+      .filter(line => line.trim().startsWith('•') || line.trim().startsWith('-'))
+      .map(line => line.trim().replace(/^[•-]\s*/, ''))
+      .filter(highlight => highlight.length > 0)
+      .slice(0, 5); // Limit to 5 highlights
+      
+    return highlights.length > 0 ? highlights : ['Feedback provided based on your application'];
+  };
+  
+  // Function to handle editing the AI-generated feedback
+  const handleEditFeedback = () => {
+    setIsEditingFeedback(true);
+  };
+  
+  // Function to save the edited feedback
+  const handleSaveFeedback = async () => {
+    setIsSavingEdit(true);
+    try {
+      // Save the edited feedback and highlights
+      await FeedbackService.saveFeedbackDraft(
+        candidate.id,
+        editedFeedback,
+        feedbackHighlights
+      );
+      
+      addNotification({
+        type: 'success',
+        title: 'Feedback Saved',
+        message: 'Your edits to the feedback have been saved'
+      });
+      
+      setIsEditingFeedback(false);
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Save Failed',
+        message: 'Failed to save your feedback edits'
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+  
+  // Function to regenerate AI feedback
+  const handleRegenerateFeedback = async () => {
+    setIsGenerating(true);
+    try {
+      const jobDescription = `${candidate.position} position requiring experience in ${candidate.rejection_stage.toLowerCase()}`;
+      const aiResult = await FeedbackService.generateFeedback(candidate.id, jobDescription);
+      
+      if (aiResult) {
+        setAiGeneratedContent(aiResult.summary || '');
+        setEditedFeedback(aiResult.summary || '');
+        
+        // Extract highlights from the feedback content
+        const highlights = extractHighlightsFromContent(aiResult.summary || '');
+        setFeedbackHighlights(highlights);
+        
+        addNotification({
+          type: 'success',
+          title: 'Feedback Regenerated',
+          message: 'AI feedback has been regenerated successfully'
+        });
+      }
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Regeneration Failed',
+        message: 'Failed to regenerate AI feedback'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const tabs = [
     { id: 'preview', label: 'Email Preview', icon: Eye },
     { id: 'pdf', label: 'PDF Report', icon: FileText },
+    { id: 'edit', label: 'Edit AI Feedback', icon: Edit },
     { id: 'settings', label: 'Settings', icon: CheckCircle }
   ];
+
+  // UI for editing AI-generated feedback
+  const renderFeedbackEditor = () => (
+    <div className="neumorphic-card p-6">
+      <div className="mb-6">
+        <h3 className="text-lg font-medium text-gray-800 mb-2">Edit AI-Generated Feedback</h3>
+        <p className="text-sm text-gray-600">
+          Modify the AI-generated feedback to better match your company's voice and tone.
+          This feedback will be sent to {candidate.name}.
+        </p>
+      </div>
+
+      {aiGeneratedContent ? (
+        <div className="space-y-6">          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Feedback Content
+            </label>
+            <div className="relative">
+              <textarea
+                value={editedFeedback}
+                onChange={(e) => setEditedFeedback(e.target.value)}
+                rows={12}
+                className={`neumorphic-input w-full font-mono text-sm ${isSavingEdit ? 'bg-gray-50' : 'bg-white'}`}
+                disabled={isSavingEdit}
+                placeholder="Enter personalized feedback for the candidate here..."
+              />
+              {editedFeedback !== aiGeneratedContent && (
+                <span className="absolute top-2 right-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-md">
+                  Edited
+                </span>
+              )}
+            </div>
+            <div className="flex justify-between mt-1">
+              <p className="text-xs text-gray-500">
+                Tips: Be specific, constructive, and encouraging. Use bullet points for clarity.
+              </p>
+              <p className="text-xs text-gray-500">
+                {editedFeedback.length} characters
+              </p>
+            </div>
+          </div>          <div>
+            <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
+              <span>Key Highlights (Up to 5)</span>
+              <span className="text-xs text-gray-500">{feedbackHighlights.length}/5 highlights</span>
+            </label>
+            <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
+              {feedbackHighlights.map((highlight, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-500 w-5">{index + 1}.</span>
+                  <input
+                    type="text"
+                    value={highlight}
+                    onChange={(e) => {
+                      const newHighlights = [...feedbackHighlights];
+                      newHighlights[index] = e.target.value;
+                      setFeedbackHighlights(newHighlights);
+                    }}
+                    className="neumorphic-input flex-grow mb-2"
+                    placeholder={`Highlight #${index + 1}`}
+                    disabled={isSavingEdit}
+                  />
+                  {feedbackHighlights.length > 1 && (
+                    <button
+                      onClick={() => {
+                        const newHighlights = [...feedbackHighlights];
+                        newHighlights.splice(index, 1);
+                        setFeedbackHighlights(newHighlights);
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                      disabled={isSavingEdit}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {feedbackHighlights.length < 5 && (
+                <button
+                  onClick={() => setFeedbackHighlights([...feedbackHighlights, ''])}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                  disabled={isSavingEdit}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Add highlight
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              These highlights will be featured prominently in the feedback email and PDF.
+            </p>
+          </div>
+
+          <div className="flex justify-between">
+            <button
+              onClick={handleRegenerateFeedback}
+              disabled={isGenerating}
+              className="neumorphic-btn px-4 py-2 flex items-center space-x-2 text-gray-700"
+            >
+              {isGenerating ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Regenerating...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Regenerate with AI</span>
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={handleSaveFeedback}
+              disabled={isSavingEdit}
+              className="neumorphic-btn-primary px-4 py-2 flex items-center space-x-2"
+            >
+              {isSavingEdit ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-gray-500 mb-6">No AI feedback has been generated yet.</p>
+          <button
+            onClick={handleRegenerateFeedback}
+            disabled={isGenerating}
+            className="neumorphic-btn-primary px-6 py-3 flex items-center space-x-2 mx-auto"
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                <span>Generate Feedback with AI</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   const renderEmailPreview = () => (
     <div className="neumorphic-card p-6">
@@ -325,6 +603,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
         <div className="p-6 overflow-y-auto max-h-[60vh] bg-background">
           {activeTab === 'preview' && renderEmailPreview()}
           {activeTab === 'pdf' && renderPDFPreview()}
+          {activeTab === 'edit' && renderFeedbackEditor()}
           {activeTab === 'settings' && renderSettings()}
         </div>
 

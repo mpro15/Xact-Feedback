@@ -2,13 +2,15 @@
 
 | Work               | Sub-Item                                                                 | State       | Priority | Estimated Time | Due Date   |
 |--------------------|--------------------------------------------------------------------------|-------------|----------|----------------|------------|
-| Profile Section    | Fix issue where uploading a photo vanishes on reload                     |             | Medium   | 2 hours        |            |
-| Candidates Page    | Resolve errors in candidate upload functionality                         |             | High     | 3 hours        |            |
-|                    | Resolve errors in bulk candidate upload functionality                    |             | High     | 3 hours        |            |
+| Profile Section    | Fix issue where uploading a photo vanishes on reload                     |    Done         | Medium   | 2 hours        |            |
+|                    | Fix the email change capability by the user                              | Pending  | High |  2 hours |
+| Candidates Page    | Resolve errors in candidate upload functionality                         | Done (did not repro)            | High     | 3 hours        |            |
+|                    | Resolve errors in bulk candidate upload functionality                    | Done (did not repro)            | High     | 3 hours        |            |
 |                    | Copy the UI for the recent candidates section from the dashboard page    | Done        | Medium   | 4 hours        |            |
-|                    | Ensure the status field is populated correctly                           |             | Medium   | 2 hours        |            |
-|                    | Ensure the "Send Feedback" button works                                 |             | High     | 3 hours        |            |
-|                    | Fix issue where saving a candidate does not complete, even though the data is updated in the database |             | High     | 2 hours        |            |
+|                    | Ensure the status field is populated correctly                           | Done (did not repro) | Medium   | 2 hours        |            |
+|                    | Ensure the "Send Feedback" button works                                 | Done (did not repro) | High     | 3 hours        |            |
+|                    | The popup for add candidate does not adjust to browser window size and there is no scroll        |             | Low     | 1 hours        |            |
+|                    | Fix issue where saving a candidate does not complete, even though the data is updated in the database | Done (did not repro) | High     | 2 hours        |            |
 | Dashboard Page     | Clicking the top-left logo should navigate the user to the home page     | Done        | Medium   | 2 hours        |            |
 |                    | Clicking the cards should navigate the user to relevant pages            | Done        | High     | 3 hours        |            |
 |                    | Ensure the Performance Overview chart shows real data (indicate 0 or no data if applicable) | Done        | High     | 4 hours        |            |
@@ -35,8 +37,9 @@
 |                                          | Make the "Preview and Test" section similar to the candidate page's "Generate Feedback" interface |        | Medium   | 3 hours        |            |
 | Header Section                           | Fix the profile icon functionality in the top-right header section  | Done       | Medium   | 2 hours        |            |
 |                                          | Ensure the search bar in the header works |        | High     | 3 hours        |            |
-| Onboarding Page                          | Resolve issues preventing the onboarding page from functioning |        | High     | 4 hours        |            |
+| Onboarding Page                          | Resolve issues preventing the onboarding page from functioning |  DONE | High     | 4 hours        |            |
 | Email Integration                        | Implement email integration |        | High     | 5 hours        |            |
 | Reports                                  | Fix issue where the generated PDF report seems dummy |        | Medium   | 3 hours        |            |
 | API Keys                                 | Utilize OAI API key for integration |        | High     | 4 hours        |            |
 | Notifications                            | Implement a flow to send notifications that will be visible in the header section's notification button |        | Medium   | 3 hours        |            |
+| Code Quality                             | Where to store secrets like open api key etc in supabase folder |        | High     | 3 hours        |            |

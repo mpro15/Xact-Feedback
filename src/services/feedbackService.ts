@@ -17,7 +17,11 @@ export interface FeedbackEmailData {
 }
 
 export class FeedbackService {
-  static async generateAndSendFeedback(candidateId: string): Promise<{
+  static async generateAndSendFeedback(
+    candidateId: string, 
+    customContent?: string, 
+    customHighlights?: string[]
+  ): Promise<{
     success: boolean;
     message: string;
     pdf_url?: string;
@@ -65,7 +69,7 @@ export class FeedbackService {
 
       // Step 1: Generate PDF
       const pdfResponse = await supabase.functions.invoke('generate-feedback-pdf', {
-        body: { data: feedbackData }
+        body: { data: feedbackData, customContent, customHighlights }
       });
 
       if (pdfResponse.error) {
@@ -111,7 +115,6 @@ export class FeedbackService {
       };
     }
   }
-
   static async sendBulkFeedback(candidateIds: string[]): Promise<{
     success: boolean;
     results: Array<{
@@ -120,26 +123,42 @@ export class FeedbackService {
       message: string;
     }>;
   }> {
-    const results = [];
-
-    for (const candidateId of candidateIds) {
-      const result = await this.generateAndSendFeedback(candidateId);
-      results.push({
-        candidate_id: candidateId,
-        success: result.success,
-        message: result.message
+    try {
+      // Call the Supabase function to handle bulk email sending
+      const response = await supabase.functions.invoke('send-bulk-feedback', {
+        body: { candidateIds }
       });
 
-      // Add delay between emails to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+      if (response.error) {
+        throw new Error(`Bulk feedback sending failed: ${response.error.message}`);
+      }
 
-    const successCount = results.filter(r => r.success).length;
-    
-    return {
-      success: successCount > 0,
-      results
-    };
+      return response.data;
+    } catch (error) {
+      console.error('Bulk feedback service error:', error);
+      
+      // Fallback to individual sending if the bulk function fails
+      const results = [];
+      
+      for (const candidateId of candidateIds) {
+        const result = await this.generateAndSendFeedback(candidateId);
+        results.push({
+          candidate_id: candidateId,
+          success: result.success,
+          message: result.message
+        });
+        
+        // Add delay between emails to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      const successCount = results.filter(r => r.success).length;
+      
+      return {
+        success: successCount > 0,
+        results
+      };
+    }
   }
 
   static async getFeedbackReport(candidateId: string) {
@@ -210,5 +229,98 @@ export class FeedbackService {
     await supabase.rpc('increment_course_enrollments', { 
       candidate_id: candidateId 
     });
+  }
+
+  static async generateFeedback(candidateId: string, jobDescription: string): Promise<any> {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate_feedback', {
+        body: { candidateId, jobDescription }
+      });
+      
+      if (error) throw error;
+      return data;
+    } catch (err: any) {
+      console.error('Error generating feedback:', err);
+      throw new Error(`Failed to generate feedback: ${err.message}`);
+    }
+  }
+
+  static async generateFeedbackPDF(feedbackData: any): Promise<any> {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-feedback-pdf', {
+        body: { data: feedbackData }
+      });
+
+      if (error) {
+        throw new Error(`PDF generation failed: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      throw error;
+    }
+  }
+
+  static async getFeedbackDraft(candidateId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('feedback_drafts')
+        .select('*')
+        .eq('candidate_id', candidateId)
+        .single();
+        
+      if (error) {
+        // If no draft exists, don't throw an error
+        if (error.code === 'PGRST116') {
+          return { data: null, error: null };
+        }
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (err: any) {
+      console.error('Error fetching feedback draft:', err);
+      return { data: null, error: err.message };
+    }
+  }
+  
+  static async saveFeedbackDraft(candidateId: string, content: string, highlights: string[]) {
+    try {
+      // Check if draft already exists
+      const { data: existingDraft } = await this.getFeedbackDraft(candidateId);
+      
+      if (existingDraft) {
+        // Update existing draft
+        const { error } = await supabase
+          .from('feedback_drafts')
+          .update({
+            content,
+            highlights,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingDraft.id);
+          
+        if (error) throw error;
+      } else {
+        // Create new draft
+        const { error } = await supabase
+          .from('feedback_drafts')
+          .insert({
+            candidate_id: candidateId,
+            content,
+            highlights,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+      }
+      
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error saving feedback draft:', err);
+      return { success: false, error: err.message };
+    }
   }
 }

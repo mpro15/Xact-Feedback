@@ -1,7 +1,7 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { supabase } from '../lib/supabaseClient';
-import CandidatesPage from '../components/dashboard/CandidatesPage';
+import { CandidatesPage } from '../pages/candidates/CandidatesPage';
 
 const TEST_USER_EMAIL = 'info@camcess.com';
 const TEST_USER_PASSWORD = 'kyoya123';
@@ -11,10 +11,9 @@ const TEST_CANDIDATE = {
   company_id: 'test-company-id', // Replace with a valid company_id for your test user
 };
 
-describe('CandidatesPage', () => {
-  beforeAll(async () => {
+describe('CandidatesPage', () => {  beforeAll(async () => {
     // Sign in test user
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: TEST_USER_EMAIL,
       password: TEST_USER_PASSWORD,
     });

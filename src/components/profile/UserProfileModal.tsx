@@ -3,11 +3,7 @@ import { X, Save, Camera } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '../../lib/supabaseClient';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -34,29 +30,25 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const response = await fetch(
-          `${supabaseUrl}/rest/v1/users?id=eq.${user?.id}&select=*`,
-          {
-            method: 'GET',
-            headers: {
-              apikey: supabaseAnonKey,
-              Authorization: `Bearer ${supabaseAnonKey}`,
-              Accept: 'application/json',
-            },
-          }
-        );
-
-        if (!response.ok) {
-          console.error('Error fetching profile data:', response.statusText);
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user?.id)
+          .single();
+        if (error || !data) {
+          console.error('Error fetching profile data:', error?.message || 'No data');
           return;
         }
-
-        const data = await response.json();
-        if (data && data.length > 0) {
-          setProfileData(data[0]);
-        } else {
-          console.warn('No profile data found for the user.');
-        }
+        setProfileData({
+          name: data.name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          department: data.department || '',
+          role: data.role || '',
+          bio: data.bio || '',
+          timezone: data.timezone || 'America/New_York',
+          profile_image_url: data.profile_image_url || ''
+        });
       } catch (err) {
         console.error('Unexpected error fetching profile data:', err);
       }
@@ -165,27 +157,28 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         return;
       }
 
-      const { data: publicUrlData, error: publicUrlError } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('profile-images')
         .getPublicUrl(filePath);
+      const publicUrl = data.publicUrl;
 
-      if (publicUrlError) {
-        console.error('Error fetching public URL:', publicUrlError.message || publicUrlError);
+      if (error) {
+        console.error('Error fetching public URL:', error.message || error);
         return;
       }
 
-      if (!publicUrlData || !publicUrlData.publicUrl) {
+      if (!publicUrl) {
         console.error('Public URL data is invalid');
         return;
       }
 
-      setProfileData((prev) => ({ ...prev, profile_image_url: publicUrlData.publicUrl }));
+      setProfileData((prev) => ({ ...prev, profile_image_url: publicUrl }));
 
       const { error: dbError } = await supabase
         .from('users')
         .upsert({
           id: user?.id,
-          profile_image_url: publicUrlData.publicUrl,
+          profile_image_url: publicUrl,
         }, { onConflict: 'id' });
 
       if (dbError) {
@@ -259,7 +252,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             <div>
               <h3 className="text-xl font-semibold text-gray-900">{profileData.name}</h3>
               <p className="text-gray-600">{profileData.role}</p>
-              <p className="text-sm text-gray-500">{user?.companyName}</p>
+              <p className="text-sm text-gray-500">{user?.company_id}</p>
             </div>
           </div>
 

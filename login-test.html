@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; }
+        .form-group { margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Login Flow Test</h1>
+    <p>Testing the complete login flow with our test credentials.</p>
+    
+    <div class="form-group">
+        <label>Email:</label>
+        <input type="email" id="email" value="testuser1755160371871@xactfeedback.com" readonly>
+    </div>
+    
+    <div class="form-group">
+        <label>Password:</label>
+        <input type="password" id="password" value="TestPassword123!" readonly>
+    </div>
+    
+    <button onclick="testLogin()">🚀 Test Login</button>
+    <button onclick="testSignup()">📝 Test Signup Flow</button>
+    <button onclick="openApp()">🌐 Open Main App</button>
+    
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js';
+        
+        const supabase = createClient(
+            'http://127.0.0.1:54321',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+        );
+
+        window.testLogin = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="result">🔄 Testing login...</div>';
+            
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    results.innerHTML = `<div class="result error">❌ Login failed: ${error.message}</div>`;
+                    return;
+                }
+                
+                results.innerHTML = `
+                    <div class="result success">
+                        ✅ Login successful!<br>
+                        👤 User ID: ${data.user.id}<br>
+                        📧 Email: ${data.user.email}<br>
+                        🎯 Ready to redirect to dashboard!
+                    </div>
+                `;
+                
+                // Test dashboard redirect
+                setTimeout(() => {
+                    window.open('http://localhost:5173/dashboard', '_blank');
+                }, 2000);
+                
+            } catch (err) {
+                results.innerHTML = `<div class="result error">❌ Error: ${err.message}</div>`;
+            }
+        };
+        
+        window.testSignup = function() {
+            window.open('http://localhost:5173/customer-signup', '_blank');
+        };
+        
+        window.openApp = function() {
+            window.open('http://localhost:5173/auth/login', '_blank');
+        };
+    </script>
+</body>
+</html>

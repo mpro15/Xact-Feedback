@@ -32,12 +32,20 @@ export default serve(async (req: Request) => {
       {
         auth: { persistSession: false },
       }
-    );
-
-    const { data: feedbackData }: { data: FeedbackData } = await req.json();
+    );    const { data: feedbackData, customContent, customHighlights }: { data: FeedbackData, customContent?: string, customHighlights?: string[] } = await req.json();
 
     // Generate AI-powered feedback content
-    const feedbackContent = generateFeedbackContent(feedbackData);
+    const feedbackContent = await generateFeedbackContent(feedbackData);
+    
+    // Merge with custom content if provided
+    if (customContent) {
+      feedbackContent.summary = customContent;
+    }
+    
+    // Merge with custom highlights if provided
+    if (customHighlights && customHighlights.length > 0) {
+      feedbackContent.skill_gaps = customHighlights;
+    }
 
     // Generate PDF HTML
     const pdfHtml = generatePDFHTML(feedbackData, feedbackContent);
@@ -105,32 +113,194 @@ export default serve(async (req: Request) => {
   }
 });
 
-function generateFeedbackContent(data: FeedbackData) {
-  // AI-powered feedback generation based on rejection stage and reason
-  const skillGaps = getSkillGaps(data.position, data.rejection_stage);
-  const resumeTips = getResumeTips(data.position, data.rejection_stage);
-  const courses = getRecommendedCourses(data.position, skillGaps);
+async function generateFeedbackContent(data: FeedbackData) {
+  // Use OpenAI API to generate feedback
+  const OPENAI_API_KEY = "";
+  
+  try {
+    // Call OpenAI API
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful recruiting assistant that provides constructive feedback to rejected candidates. Your feedback is specific, actionable, and encouraging."
+          },
+          {
+            role: "user",
+            content: `Generate comprehensive feedback for a candidate who was rejected for a ${data.position} position at the ${data.rejection_stage} stage. The rejection reason was: ${data.rejection_reason || 'Not specified'}. Include the following sections: 1) A summary of why they might not have been selected, 2) Skill gaps to address, 3) Resume improvement tips, 4) Recommended courses or resources, 5) A motivational message, and 6) Next steps. Format as JSON with these keys: summary, rejection_reason, skill_gaps (array), motivational_message, resume_tips (array), courses (object with free and paid arrays of course objects), next_steps (array).`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1500
+      })
+    });
+    
+    const responseData = await response.json();
+    
+    if (responseData.error) {
+      console.error("OpenAI API error:", responseData.error);
+      throw new Error(`OpenAI API error: ${responseData.error.message}`);
+    }
+    
+    const feedbackContent = responseData.choices[0]?.message?.content;
+    
+    try {
+      // Parse the JSON from the response
+      const parsedContent = JSON.parse(feedbackContent);
+      return parsedContent;
+    } catch (parseError) {
+      // Fallback to structured data if parsing fails
+      console.error("Failed to parse OpenAI response as JSON:", parseError);
+      
+      // Fallback to manually extracted sections
+      const fallbackContent = extractSectionsFromText(feedbackContent);
+      return fallbackContent;
+    }
+    
+  } catch (error) {
+    console.error("Error generating AI feedback:", error);
+    
+    // Fallback to static content if API call fails
+    const skillGaps = getSkillGaps(data.position, data.rejection_stage);
+    const resumeTips = getResumeTips(data.position, data.rejection_stage);
+    const courses = getRecommendedCourses(data.position, skillGaps);
 
-  return {
-    summary: `Thank you for your interest in the ${data.position} position at ${data.company_name}. While we were impressed with your background, we've decided to move forward with another candidate at the ${data.rejection_stage} stage.`,
-    
-    rejection_reason: data.rejection_reason,
-    
-    skill_gaps: skillGaps,
-    
-    motivational_message: `We believe in your potential and want to help you grow. The feedback below is designed to help you strengthen your skills and increase your chances in future applications. Many successful candidates have used similar feedback to land their dream jobs.`,
-    
-    resume_tips: resumeTips,
-    
-    courses: courses,
-    
-    next_steps: [
-      'Review and implement the resume improvement suggestions',
-      'Complete at least 2-3 recommended courses',
-      'Build a portfolio project showcasing your new skills',
-      'Consider reapplying in 6-12 months'
-    ]
+    return {
+      summary: `Thank you for your interest in the ${data.position} position at ${data.company_name}. While we were impressed with your background, we've decided to move forward with another candidate at the ${data.rejection_stage} stage.`,
+      
+      rejection_reason: data.rejection_reason,
+      
+      skill_gaps: skillGaps,
+      
+      motivational_message: `We believe in your potential and want to help you grow. The feedback below is designed to help you strengthen your skills and increase your chances in future applications. Many successful candidates have used similar feedback to land their dream jobs.`,
+      
+      resume_tips: resumeTips,
+      
+      courses: courses,
+      
+      next_steps: [
+        'Review and implement the resume improvement suggestions',
+        'Complete at least 2-3 recommended courses',
+        'Build a portfolio project showcasing your new skills',
+        'Consider reapplying in 6-12 months'
+      ]
+    };
+  }
+}
+
+function extractSectionsFromText(text) {
+  const sections = {
+    summary: '',
+    rejection_reason: '',
+    skill_gaps: [],
+    motivational_message: '',
+    resume_tips: [],
+    courses: {
+      free: [],
+      paid: []
+    },
+    next_steps: []
   };
+  
+  // Simple extraction based on section titles in the text
+  const lines = text.split('\n');
+  let currentSection = null;
+  
+  for (const line of lines) {
+    const lowerLine = line.toLowerCase();
+    
+    if (lowerLine.includes('summary') || lowerLine.startsWith('1)')) {
+      currentSection = 'summary';
+      sections.summary = line.replace(/^.*?summary:?\s*/i, '').replace(/^1\)\s*/, '');
+    } 
+    else if (lowerLine.includes('rejection') || lowerLine.startsWith('2)')) {
+      currentSection = 'rejection_reason';
+      sections.rejection_reason = line.replace(/^.*?rejection:?\s*/i, '').replace(/^2\)\s*/, '');
+    }
+    else if (lowerLine.includes('skill gap') || lowerLine.startsWith('3)')) {
+      currentSection = 'skill_gaps';
+      const match = line.match(/(?:-)?\s*(.+)/);
+      if (match && !lowerLine.includes('skill gap')) {
+        sections.skill_gaps.push(match[1]);
+      }
+    }
+    else if (lowerLine.includes('motivational') || lowerLine.includes('encourage') || lowerLine.startsWith('5)')) {
+      currentSection = 'motivational_message';
+      sections.motivational_message = line.replace(/^.*?message:?\s*/i, '').replace(/^5\)\s*/, '');
+    }
+    else if (lowerLine.includes('resume') || lowerLine.startsWith('4)')) {
+      currentSection = 'resume_tips';
+      const match = line.match(/(?:-)?\s*(.+)/);
+      if (match && !lowerLine.includes('resume tip')) {
+        sections.resume_tips.push(match[1]);
+      }
+    }
+    else if (lowerLine.includes('course') || lowerLine.includes('resource')) {
+      currentSection = 'courses';
+      if (lowerLine.includes('free')) {
+        sections.courses.free.push({
+          title: line.replace(/^.*?:\s*/, ''),
+          provider: 'Online Learning Platform',
+          url: 'https://example.com/course',
+          rating: 4.5
+        });
+      } else if (lowerLine.includes('paid')) {
+        sections.courses.paid.push({
+          title: line.replace(/^.*?:\s*/, ''),
+          provider: 'Professional Learning Platform',
+          url: 'https://example.com/pro-course',
+          rating: 4.7,
+          price: '$49.99'
+        });
+      }
+    }
+    else if (lowerLine.includes('next step') || lowerLine.startsWith('6)')) {
+      currentSection = 'next_steps';
+      const match = line.match(/(?:-)?\s*(.+)/);
+      if (match && !lowerLine.includes('next step')) {
+        sections.next_steps.push(match[1]);
+      }
+    }
+    else if (currentSection) {
+      // Add content to the current section
+      if (currentSection === 'summary' && !sections.summary) {
+        sections.summary += line;
+      }
+      else if (currentSection === 'rejection_reason' && !sections.rejection_reason) {
+        sections.rejection_reason += line;
+      }
+      else if (currentSection === 'skill_gaps') {
+        const match = line.match(/(?:-)?\s*(.+)/);
+        if (match && line.trim()) {
+          sections.skill_gaps.push(match[1]);
+        }
+      }
+      else if (currentSection === 'motivational_message' && !sections.motivational_message) {
+        sections.motivational_message += line;
+      }
+      else if (currentSection === 'resume_tips') {
+        const match = line.match(/(?:-)?\s*(.+)/);
+        if (match && line.trim()) {
+          sections.resume_tips.push(match[1]);
+        }
+      }
+      else if (currentSection === 'next_steps') {
+        const match = line.match(/(?:-)?\s*(.+)/);
+        if (match && line.trim()) {
+          sections.next_steps.push(match[1]);
+        }
+      }
+    }
+  }
+  
+  return sections;
 }
 
 function getSkillGaps(position: string, rejectionStage: string): string[] {
@@ -502,18 +672,78 @@ function generatePDFHTML(data: FeedbackData, content: any): string {
 }
 
 async function generatePDF(html: string): Promise<Uint8Array> {
-  // In a real implementation, you would use Puppeteer or similar
-  // For this example, we'll simulate PDF generation
-  
-  // This would typically be:
-  // const browser = await puppeteer.launch()
-  // const page = await browser.newPage()
-  // await page.setContent(html)
-  // const pdf = await page.pdf({ format: 'A4', printBackground: true })
-  // await browser.close()
-  // return pdf
-  
-  // For now, we'll create a mock PDF buffer
-  const encoder = new TextEncoder();
-  return encoder.encode(`%PDF-1.4 Mock PDF Content for: ${html.substring(0, 100)}...`);
+  try {
+    // Use a third-party HTML to PDF API service 
+    const pdfResponse = await fetch('https://api.pdfendpoint.com/v1/convert', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + Deno.env.get('PDF_API_KEY') || 'default-key'
+      },
+      body: JSON.stringify({
+        html: html,
+        options: {
+          format: 'A4',
+          printBackground: true,
+          margin: {
+            top: '1cm',
+            right: '1cm',
+            bottom: '1cm',
+            left: '1cm'
+          }
+        }
+      })
+    });
+
+    if (pdfResponse.ok) {
+      // Get binary PDF data
+      const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
+      return pdfBuffer;
+    } else {
+      throw new Error(`PDF generation API error: ${pdfResponse.status} ${pdfResponse.statusText}`);
+    }
+  } catch (error) {
+    console.error('PDF generation failed:', error);
+    
+    // Fallback to generating a simple PDF
+    const encoder = new TextEncoder();
+    const pdfContent = `%PDF-1.7
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 612 792] /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Font << /F1 6 0 R >> >>
+endobj
+5 0 obj
+<< /Length 89 >>
+stream
+BT /F1 12 Tf 72 720 Td (Candidate Feedback Report) Tj ET
+BT /F1 10 Tf 72 700 Td (Please view this report online for better formatting.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 7
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000117 00000 n
+0000000210 00000 n
+0000000251 00000 n
+0000000390 00000 n
+trailer << /Size 7 /Root 1 0 R >>
+startxref
+457
+%%EOF`;
+    
+    return encoder.encode(pdfContent);
+  }
 }

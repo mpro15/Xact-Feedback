@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserProfileModal } from '../../components/profile/UserProfileModal';
 
+// Ensure the UserProfilePage is correctly set up for navigation
 const UserProfilePage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(true);
   const navigate = useNavigate();

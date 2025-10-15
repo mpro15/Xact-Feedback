@@ -1,91 +1,73 @@
-import React, { useEffect, useState, ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
-import { Clock } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import React, { ReactNode } from 'react';
+import { useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
 
-interface ProtectedRouteProps { children: ReactNode }
+interface ProtectedRouteProps { 
+  children: ReactNode;
+  requireAuth?: boolean;
+  requiredPermissions?: string[];
+  fallbackPath?: string;
+}
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [subscriptionActive, setSubscriptionActive] = useState(true);
-  const { user, loading: authLoading } = useAuth();
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children,
+  requireAuth = true,
+  requiredPermissions = [],
+  fallbackPath = '/login'
+}) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
 
-  useEffect(() => {
-    async function checkAuth() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsAuthenticated(false);
-        setLoading(false);
-        return;
-      }
-      setIsAuthenticated(true);
-      // Fetch company subscription status
-      const { data: profile } = await supabase.from('users').select('company_id').eq('id', user.id).single();
-      if (!profile?.company_id) {
-        setSubscriptionActive(false);
-        setLoading(false);
-        return;
-      }
-      const { data: company } = await supabase.from('companies').select('subscription_active').eq('id', profile.company_id).single();
-      setSubscriptionActive(!!company?.subscription_active);
-      setLoading(false);
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (requireAuth && !user) {
+    return <Navigate to={fallbackPath} state={{ from: location }} replace />;
+  }
+
+  if (requiredPermissions.length > 0 && user) {
+    const userPermissions = user.permissions || {};
+    const hasAllPermissions = requiredPermissions.every(perm => {
+      if (perm === 'admin') return user.account_type === 'admin';
+      if (perm === 'approved') return user.is_approved === true;
+      return userPermissions[`can_${perm}`] === true || userPermissions[perm] === true;
+    });
+    if (!hasAllPermissions) {
+      return <Navigate to={fallbackPath} state={{ from: location }} replace />;
     }
-    checkAuth();
-  }, []);
-
-  console.log('[ProtectedRoute] user:', user);
-  console.log('[ProtectedRoute] isAuthenticated:', isAuthenticated);
-  console.log('[ProtectedRoute] subscriptionActive:', subscriptionActive);
-
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="large" />
-      </div>
-    );
   }
 
-  if (!isAuthenticated) {
-    console.log('[ProtectedRoute] Not authenticated, redirecting to /login');
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!user.is_onboarded) {
-    console.log('[ProtectedRoute] Not onboarded, redirecting to /onboarding');
-    return <Navigate to="/onboarding" replace />;
-  }
-
-  if (user.accountType === 'user' && !user.isApproved) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="w-8 h-8 text-yellow-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Account Pending Approval</h2>
-          <p className="text-gray-600 mb-4">
-            Your account has been created successfully. Please wait for an administrator to approve your access.
-          </p>
-          <button
-            onClick={() => window.location.href = '/login'}
-            className="text-blue-600 hover:text-blue-500 font-medium"
-          >
-            Back to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Payment enforcement
-  if (!subscriptionActive) {
-    console.log('[ProtectedRoute] Subscription inactive, redirecting to /payment-pending');
-    return <Navigate to="/payment-pending" replace />;
-  }
-
-  console.log('[ProtectedRoute] Rendering protected route');
   return <>{children}</>;
 };
+
+// Higher-order component for easier usage
+export const withAuth = <P extends object>(
+  Component: React.ComponentType<P>,
+  options: Omit<ProtectedRouteProps, 'children'> = {}
+) => {
+  return (props: P) => (
+    <ProtectedRoute {...options}>
+      <Component {...props} />
+    </ProtectedRoute>
+  );
+};
+
+// Convenience components for common access patterns
+export const AdminRoute: React.FC<{ children: ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredPermissions={['admin']}>
+    {children}
+  </ProtectedRoute>
+);
+
+export const ApprovedUserRoute: React.FC<{ children: ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredPermissions={['approved']}>
+    {children}
+  </ProtectedRoute>
+);
+
+export const ManagerRoute: React.FC<{ children: ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredPermissions={['access_analytics']}>
+    {children}
+  </ProtectedRoute>
+);

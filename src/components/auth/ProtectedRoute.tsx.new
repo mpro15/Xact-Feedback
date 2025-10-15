@@ -1,0 +1,53 @@
+import React, { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
+// AUTHENTICATION DISABLED - All auth checks bypassed
+
+interface ProtectedRouteProps { 
+  children: ReactNode;
+  requireAuth?: boolean;
+  requiredPermissions?: string[];
+  fallbackPath?: string;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children,
+  requireAuth = true,
+  requiredPermissions = [],
+  fallbackPath = '/login'
+}) => {
+  console.log("AUTH DISABLED: Protected route bypassed");
+  
+  // AUTHENTICATION DISABLED - Always render children
+  return <>{children}</>;
+};
+
+// Higher-order component for easier usage
+export const withAuth = <P extends object>(
+  Component: React.ComponentType<P>,
+  options: Omit<ProtectedRouteProps, 'children'> = {}
+) => {
+  return (props: P) => (
+    <ProtectedRoute {...options}>
+      <Component {...props} />
+    </ProtectedRoute>
+  );
+};
+
+// Convenience components for common access patterns
+export const AdminRoute: React.FC<{ children: ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredPermissions={['admin']}>
+    {children}
+  </ProtectedRoute>
+);
+
+export const ApprovedUserRoute: React.FC<{ children: ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredPermissions={['approved']}>
+    {children}
+  </ProtectedRoute>
+);
+
+export const ManagerRoute: React.FC<{ children: ReactNode }> = ({ children }) => (
+  <ProtectedRoute requiredPermissions={['access_analytics']}>
+    {children}
+  </ProtectedRoute>
+);

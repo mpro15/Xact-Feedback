@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, Mail, RefreshCw, Key } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Key } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 
 export const EmailIntegrations: React.FC = () => {
@@ -174,12 +174,23 @@ export const EmailIntegrations: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-gray-900">Email Service Integrations</h3>
+    <div className="space-y-6">      <div>
+        <h3 className="text-lg font-medium text-gray-900">Email Service Status</h3>
         <p className="text-sm text-gray-600 mt-1">
-          Connect with email delivery services to ensure reliable feedback email delivery
+          Email delivery service is powered by Xact-Feedback's built-in email system
         </p>
+      </div>
+      
+      <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+        <div className="flex items-start">
+          <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 mr-3" />
+          <div>
+            <h4 className="font-medium text-green-800">Email Service Active</h4>
+            <p className="text-sm text-green-700 mt-1">
+              Our built-in email service is fully configured and ready to use. There's no need to set up custom SMTP servers or connect third-party email providers.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

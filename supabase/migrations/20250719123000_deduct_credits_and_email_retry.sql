@@ -1,4 +1,7 @@
--- Function: deduct_credits(p_company_id UUID, p_amount INT, p_feature TEXT, p_description TEXT, p_user_id UUID)
+-- Drop existing function if it exists with different signature
+DROP FUNCTION IF EXISTS deduct_credits(UUID, INT, TEXT, TEXT, UUID);
+
+-- Function: deduct_credits(p_company_id UUID, p_amount INT, p_feature TEXT, p_description TEXT, p_user_id UUID)  
 CREATE OR REPLACE FUNCTION deduct_credits(
   p_company_id UUID,
   p_amount INT,
@@ -41,28 +44,18 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS smtp_user text;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS smtp_pass text;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS smtp_secure boolean DEFAULT false;
 
--- pg_cron job: retry failed email campaigns every 5 minutes
-SELECT cron.schedule('retry_email_campaigns', '*/5 * * * *', $$
-  DO $$
-  DECLARE
-    r RECORD;
-    backoff INTERVAL;
-  BEGIN
-    FOR r IN SELECT * FROM email_campaigns WHERE status = 'retrying' AND attempt_count < 3 LOOP
-      backoff := (2 ^ r.attempt_count) * INTERVAL '1 minute';
-      IF now() - r.last_attempt_at >= backoff THEN
-        -- Call send_feedback function (assume HTTP call via postgres extension or custom function)
-        PERFORM send_feedback(r.candidate_id, r.feedback_id);
-        UPDATE email_campaigns
-          SET attempt_count = attempt_count + 1,
-              last_attempt_at = now(),
-              status = CASE WHEN attempt_count + 1 >= 3 THEN 'failed' ELSE 'retrying' END
-          WHERE id = r.id;
-      END IF;
-    END LOOP;
-  END;
-  $$
-$$);
+-- pg_cron job: retry failed email campaigns every 5 minutes (conditionally create if cron extension exists)
+DO $migration$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_extension 
+    WHERE extname = 'pg_cron'
+  ) THEN
+    PERFORM cron.schedule('retry_email_campaigns', '*/5 * * * *', 'SELECT retry_failed_emails();');
+  ELSE
+    RAISE NOTICE 'pg_cron extension not available, skipping cron job creation';
+  END IF;
+END $migration$;
 
 -- Function: retry_failed_emails()
 CREATE OR REPLACE FUNCTION retry_failed_emails() RETURNS VOID AS $$

@@ -1,21 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 
 export const BillingPage: React.FC = () => {
   const { addNotification } = useNotification();
+  const { companyId } = useAuth();
   const [credits, setCredits] = useState<number>(0);
   const [usageHistory, setUsageHistory] = useState<any[]>([]);
   const CREDIT_THRESHOLD = 100;
 
   useEffect(() => {
     async function fetchCredits() {
-      const userRes = await supabase.auth.getUser();
-      const userId = userRes.data.user?.id;
-      if (!userId) return;
-      const profileRes = await supabase.from('users').select('company_id').eq('id', userId).single();
-      const companyId = profileRes.data?.company_id;
       if (!companyId) return;
       const creditsRes = await supabase.from('credits_balance').select('credits').eq('company_id', companyId).single();
       setCredits(creditsRes.data?.credits || 0);
@@ -23,12 +20,11 @@ export const BillingPage: React.FC = () => {
       setUsageHistory(usageRes.data || []);
     }
     fetchCredits();
-  }, []);
+  }, [companyId]);
 
   const handleTopUp = async () => {
-    const res = await fetch('/functions/create_topup_session', { method: 'POST' });
-    const data = await res.json();
-    if (data.url) {
+    const { data, error } = await supabase.functions.invoke('create_topup_session', { method: 'POST' });
+    if (data?.url) {
       window.location.href = data.url;
     } else {
       addNotification({ type: 'error', title: 'Top-Up Failed', message: 'Could not create payment session.' });

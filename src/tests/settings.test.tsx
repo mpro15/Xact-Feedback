@@ -1,19 +1,19 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import SettingsPage from '../pages/settings/SettingsPage';
+import { describe, it, expect, vi } from 'vitest';
+import { SettingsPage } from '../pages/settings/SettingsPage';
 
-const mockSelect = jest.fn(() => Promise.resolve({
+const mockSelect = vi.fn(() => Promise.resolve({
   data: [{ smtp_host: 'smtp.example.com', smtp_port: 587, smtp_user: 'user', smtp_pass: 'pass' }],
   error: null,
 }));
-const mockUpdate = jest.fn(() => Promise.resolve({ data: [{}], error: null }));
+const mockUpdate = vi.fn(() => Promise.resolve({ data: [{}], error: null }));
 
-jest.mock('../lib/supabaseClient', () => ({
+vi.mock('../lib/supabaseClient', () => ({
   supabase: {
-    from: jest.fn(() => ({
+    from: vi.fn(() => ({
       select: mockSelect,
       update: mockUpdate,
-      eq: jest.fn(() => ({ select: mockSelect, update: mockUpdate })),
+      eq: vi.fn(() => ({ select: mockSelect, update: mockUpdate })),
     })),
   },
 }));

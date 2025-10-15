@@ -1,5 +1,5 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 
@@ -10,8 +10,8 @@ function PaymentPendingPage() {
   return <div>Payment Pending</div>;
 }
 
-jest.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { isOnboarded: true }, loading: false }),
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { is_onboarded: true }, loading: false }),
 }));
 
 jest.mock('../lib/supabaseClient', () => ({

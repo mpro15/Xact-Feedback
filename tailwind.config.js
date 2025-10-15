@@ -37,10 +37,29 @@ export default {
         'neumorphic-sm': '4px 4px 8px #e0e0e0, -4px -4px 8px #ffffff',
         'neumorphic-lg': '12px 12px 24px #e0e0e0, -12px -12px 24px #ffffff',
         'neumorphic-hover': '6px 6px 12px rgba(0, 0, 0, 0.05), -6px -6px 12px #ffffff',
-      },
-      backgroundImage: {
+      },      backgroundImage: {
         'neumorphic-gradient': 'linear-gradient(145deg, #ffffff, #f1f3f5)',
         'neumorphic-gradient-reverse': 'linear-gradient(145deg, #f1f3f5, #ffffff)',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        bounceOnce: {
+          '0%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+          '100%': { transform: 'translateY(0)' },
+        },
+        pulse: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.5' },
+        }
+      },
+      animation: {
+        'fadeIn': 'fadeIn 0.5s ease-in-out',
+        'bounce-once': 'bounceOnce 1s ease-in-out',
+        'pulse-slow': 'pulse 3s ease-in-out infinite',
       },
     },
   },

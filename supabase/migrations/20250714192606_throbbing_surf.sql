@@ -61,6 +61,8 @@ CREATE POLICY "Admins can update own company"
 DO $$
 BEGIN
   -- Add missing foreign key constraints with CASCADE if they don't exist
+  -- DISABLED: user_profiles table does not exist, commenting out until schema is stable
+  /*
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints 
     WHERE constraint_name = 'user_profiles_user_id_fkey'
@@ -69,8 +71,11 @@ BEGIN
     ADD CONSTRAINT user_profiles_user_id_fkey 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
   END IF;
+  */
 
-  IF NOT EXISTS (
+  -- Add foreign key constraints only for tables that exist
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'candidates') 
+     AND NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints 
     WHERE constraint_name = 'candidates_company_id_fkey'
   ) THEN
@@ -79,7 +84,8 @@ BEGIN
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE;
   END IF;
 
-  IF NOT EXISTS (
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'candidates') 
+     AND NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints 
     WHERE constraint_name = 'candidates_created_by_fkey'
   ) THEN

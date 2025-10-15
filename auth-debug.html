@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Auth Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #2563eb; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 4px; }
+        .success { background: #dcfce7; border: 1px solid #16a34a; color: #166534; }
+        .error { background: #fef2f2; border: 1px solid #ef4444; color: #dc2626; }
+        .info { background: #dbeafe; border: 1px solid #3b82f6; color: #1e40af; }
+        .config { background: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+        pre { background: #f3f4f6; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Supabase Authentication Debug Tool</h1>
+        
+        <div class="config">
+            <h3>Current Configuration:</h3>
+            <pre id="config-display">Loading configuration...</pre>
+        </div>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="testuser1755160371871@xactfeedback.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="TestPassword123!" required>
+            </div>
+            
+            <button type="submit">🧪 Test Authentication</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        // Configuration (matching the frontend .env)
+        const config = {
+            supabaseUrl: 'http://127.0.0.1:54321',
+            supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+        };
+        
+        // Display current configuration
+        document.getElementById('config-display').textContent = JSON.stringify(config, null, 2);
+        
+        // Create Supabase client (exactly like the frontend)
+        const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+            fetch: (input, init) => {
+                init = init || {};
+                init.headers = {
+                    ...init.headers,
+                    Accept: 'application/json',
+                };
+                return fetch(input, init);
+            },
+        });
+        
+        // Test connection on load
+        async function testConnection() {
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                if (error) {
+                    showResult('error', `Connection test failed: ${error.message}`);
+                } else {
+                    showResult('success', 'Supabase connection successful!');
+                }
+            } catch (error) {
+                showResult('error', `Connection test error: ${error.message}`);
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            showResult('info', 'Testing authentication...');
+            
+            try {
+                console.log('🧪 Attempting authentication...');
+                console.log(`Email: ${email}`);
+                console.log(`URL: ${config.supabaseUrl}`);
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    console.error('❌ Authentication failed:', error);
+                    showResult('error', `Authentication failed: ${error.message}<br><br>Error details: ${JSON.stringify(error, null, 2)}`);
+                } else {
+                    console.log('✅ Authentication successful:', data);
+                    showResult('success', `
+                        Authentication successful!<br>
+                        <strong>User ID:</strong> ${data.user?.id}<br>
+                        <strong>Email:</strong> ${data.user?.email}<br>
+                        <strong>Email confirmed:</strong> ${data.user?.email_confirmed_at ? 'Yes' : 'No'}<br>
+                        <strong>Session expires:</strong> ${new Date(data.session?.expires_at * 1000).toLocaleString()}
+                    `);
+                    
+                    // Auto sign out after successful test
+                    setTimeout(async () => {
+                        await supabase.auth.signOut();
+                        showResult('info', 'Automatically signed out after successful test.');
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error('❌ Unexpected error:', error);
+                showResult('error', `Unexpected error: ${error.message}`);
+            }
+        });
+        
+        function showResult(type, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+        }
+        
+        // Test connection on page load
+        testConnection();
+    </script>
+</body>
+</html>

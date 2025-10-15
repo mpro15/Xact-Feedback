@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Save, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
+import { supabase } from '../../lib/supabaseClient';
 
 export const BehaviorSettings: React.FC = () => {
   const { addNotification } = useNotification();
@@ -10,21 +11,19 @@ export const BehaviorSettings: React.FC = () => {
     includePaidCourses: false,
     enableReApplicationLink: true,
     feedbackTone: 'supportive',
-    requireApproval: false,
     batchSending: true,
-    sendDelay: 24,
+    sendDelay: 60, // Default 60 minutes (now represents minutes instead of hours)
     dailyEmailLimit: 100,
     maxCourseSuggestions: 5,
-    personalizedGreeting: true,
-    includeCompanyBranding: true
+    includeCompanyBranding: true,
+    showSimilarJobs: true, // Setting for similar job suggestions
   });
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update company settings in Supabase
+        // Update company settings in Supabase
       const { error } = await supabase
         .from('companies')
         .update({
@@ -34,9 +33,10 @@ export const BehaviorSettings: React.FC = () => {
               include_paid_courses: settings.includePaidCourses,
               enable_reapplication: settings.enableReApplicationLink,
               feedback_tone: settings.feedbackTone,
-              require_approval: settings.requireApproval,
               batch_sending: settings.batchSending,
-              send_delay: settings.sendDelay
+              send_delay_minutes: settings.sendDelay,
+              show_similar_jobs: settings.showSimilarJobs,
+              max_course_suggestions: settings.maxCourseSuggestions
             }
           },
           daily_email_limit: settings.dailyEmailLimit
@@ -119,36 +119,12 @@ export const BehaviorSettings: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Require approval before sending
-                </label>
-                <p className="text-xs text-gray-500">
-                  All feedback emails need approval before being sent
-                </p>
-              </div>
-              <button
-                onClick={() => handleToggle('requireApproval')}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  settings.requireApproval ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.requireApproval ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Send delay (hours)
+            <div>              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Send delay (minutes)
                 <div className="group relative inline-block ml-1">
                   <Info className="w-3 h-3 text-gray-400 cursor-help" />
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    24-48 hours delay improves candidate perception
+                    A brief delay improves email delivery success rates
                   </div>
                 </div>
               </label>
@@ -159,9 +135,8 @@ export const BehaviorSettings: React.FC = () => {
                 min="0"
                 max="168"
                 className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Wait time before sending feedback emails (0 = immediate)
+              />              <p className="text-xs text-gray-500 mt-1">
+                Wait time before sending feedback emails in minutes (0 = immediate)
               </p>
             </div>
 
@@ -185,12 +160,19 @@ export const BehaviorSettings: React.FC = () => {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Maximum emails to send per day (recommended: 100-500)
-              </p>
-              {settings.dailyEmailLimit > 500 && (
+              </p>              {settings.dailyEmailLimit > 500 && (
                 <div className="flex items-center space-x-1 mt-1">
                   <AlertCircle className="w-3 h-3 text-yellow-500" />
                   <p className="text-xs text-yellow-600">
                     High volume may trigger spam filters
+                  </p>
+                </div>
+              )}
+              {settings.dailyEmailLimit <= 0 && (
+                <div className="flex items-center space-x-1 mt-1">
+                  <AlertCircle className="w-3 h-3 text-red-500" />
+                  <p className="text-xs text-red-600">
+                    Daily email limit reached.
                   </p>
                 </div>
               )}
@@ -207,8 +189,7 @@ export const BehaviorSettings: React.FC = () => {
                 Feedback tone
                 <div className="group relative inline-block ml-1">
                   <Info className="w-3 h-3 text-gray-400 cursor-help" />
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    Supportive tone increases candidate satisfaction by 35%
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">                    Tone selection directly impacts AI-generated feedback output
                   </div>
                 </div>
               </label>
@@ -222,6 +203,9 @@ export const BehaviorSettings: React.FC = () => {
                 <option value="supportive">Supportive</option>
                 <option value="encouraging">Encouraging</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Directly affects the AI-generated feedback tone in emails
+              </p>
             </div>
 
             <div>
@@ -299,35 +283,10 @@ export const BehaviorSettings: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Personalization Settings */}
+        </div>        {/* Email Delivery Settings */}
         <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-900 mb-4">Personalization</h4>
+          <h4 className="font-medium text-gray-900 mb-4">Email Delivery</h4>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Personalized greeting
-                </label>
-                <p className="text-xs text-gray-500">
-                  Use candidate's name in email greeting
-                </p>
-              </div>
-              <button
-                onClick={() => handleToggle('personalizedGreeting')}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  settings.personalizedGreeting ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.personalizedGreeting ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
             <div className="flex items-center justify-between">
               <div>
                 <label className="text-sm font-medium text-gray-700">
@@ -369,6 +328,29 @@ export const BehaviorSettings: React.FC = () => {
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                     settings.batchSending ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Show similar jobs
+                </label>
+                <p className="text-xs text-gray-500">
+                  Include 3 similar job opportunities in feedback emails
+                </p>
+              </div>
+              <button
+                onClick={() => handleToggle('showSimilarJobs')}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  settings.showSimilarJobs ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings.showSimilarJobs ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>

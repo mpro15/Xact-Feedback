@@ -1,19 +1,17 @@
-SELECT id, profile_image_url,
-       CONCAT('https://', '<your-supabase-project-ref>', '.supabase.co/storage/v1/object/public/profile-images/', REPLACE(profile_image_url, '<bucket-path-prefix>', '')) AS public_url
-FROM users
-WHERE profile_image_url IS NOT NULL;/*
-  # Multi-tenant Schema for Xact Feedback Platform
+-- Query moved to after table creation
+/*
+  Multi-tenant Schema for Xact Feedback Platform
 
   1. New Tables
-    - `companies` - Company/tenant information
-    - `users` - User accounts with company association
-    - `candidates` - Candidate data per company
-    - `feedback_reports` - Generated feedback reports
-    - `email_campaigns` - Email campaign tracking
-    - `notifications` - User-specific notifications
-    - `integrations` - Company integration settings
-    - `analytics_events` - Event tracking for analytics
-    - `user_profiles` - Extended user profile information
+    - companies - Company/tenant information
+    - users - User accounts with company association
+    - candidates - Candidate data per company
+    - feedback_reports - Generated feedback reports
+    - email_campaigns - Email campaign tracking
+    - notifications - User-specific notifications
+    - integrations - Company integration settings
+    - analytics_events - Event tracking for analytics
+    - user_profiles - Extended user profile information
 
   2. Security
     - Enable RLS on all tables

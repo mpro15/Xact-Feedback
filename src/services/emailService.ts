@@ -194,6 +194,34 @@ export class EmailService {
     }
   }
 
+  static async trackEmailClick(candidateId: string, emailId: string, linkUrl: string): Promise<void> {
+    try {
+      // Update candidate email clicks
+      await supabase.rpc('increment_email_clicks', { 
+        candidate_id: candidateId 
+      });
+
+      // Log analytics event
+      await supabase.from('analytics_events').insert({
+        candidate_id: candidateId,
+        event_type: 'email_clicked',
+        event_data: { 
+          email_id: emailId,
+          link_url: linkUrl,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      // Track course enrollment if it's a course link
+      if (this.isCourseLink(linkUrl)) {
+        await this.trackCourseEnrollment(candidateId, linkUrl);
+      }
+
+    } catch (error) {
+      console.error('Failed to track email click:', error);
+    }
+  }
+
   static async trackLinkClick(
     candidateId: string, 
     emailId: string, 

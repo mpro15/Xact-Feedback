@@ -27,5 +27,15 @@ BEGIN
 END;
 $$;
 
--- Schedule with pg_cron every 5 minutes
-SELECT cron.schedule('email_campaigns_retry', '*/5 * * * *', $$CALL process_email_campaign_retries();$$);
+-- Schedule with pg_cron every 5 minutes (only if cron extension exists)
+DO $migration$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_extension 
+    WHERE extname = 'pg_cron'
+  ) THEN
+    PERFORM cron.schedule('email_campaigns_retry', '*/5 * * * *', 'SELECT process_email_campaign_retries();');
+  ELSE
+    RAISE NOTICE 'pg_cron extension not available, skipping cron job creation';
+  END IF;
+END $migration$;

@@ -1,21 +1,25 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { FilterProvider } from './contexts/FilterContext';
 
-import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { NotificationContainer } from './components/ui/NotificationContainer';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 import { LoginPage } from './pages/auth/LoginPage';
+import { UnifiedSignupPage } from './pages/auth/UnifiedSignupPage';
 import { CustomerSignupPage } from './pages/auth/CustomerSignupPage';
-import { UserSignupPage } from './pages/auth/UserSignupPage';
-import { OnboardingPage } from './pages/onboarding/OnboardingPage';
+import { EmailVerificationPage } from './pages/auth/EmailVerificationPage';
+import { EmailVerificationSentPage } from './pages/auth/EmailVerificationSentPage';
+import { PasswordSetupPage } from './pages/auth/PasswordSetupPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { SupportLoginPage } from './pages/support/SupportLoginPage';
+import { LandingPage } from './pages/LandingPage';
 import UserProfilePage from './pages/profile/UserProfilePage';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { CandidatesPage } from './pages/candidates/CandidatesPage';
@@ -39,72 +43,68 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <FilterProvider>
-          <NotificationProvider>
-            <Router>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/customer-signup" element={<CustomerSignupPage />} />
-                <Route path="/signup" element={<UserSignupPage />} />
-                <Route path="/support-login" element={<SupportLoginPage />} />
+          <NotificationProvider>            <Routes>              {/* Public Routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<UnifiedSignupPage />} />
+              <Route path="/customer-signup" element={<CustomerSignupPage />} />
+              <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
+              <Route path="/auth/verify-email-sent" element={<EmailVerificationSentPage />} />
+              <Route path="/auth/setup-password" element={<PasswordSetupPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/support-login" element={<SupportLoginPage />} />
 
-                {/* Onboarding Route */}
-                <Route path="/onboarding" element={
-                  <ProtectedRoute>
-                    <OnboardingPage />
-                  </ProtectedRoute>
-                } />
+              {/* Protected Routes - Require authentication only */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <DashboardPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/candidates" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CandidatesPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <AnalyticsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/billing" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <BillingPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SettingsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
 
-                {/* Protected Routes with Dashboard Layout */}
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <DashboardPage />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/candidates" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <CandidatesPage />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/analytics" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <AnalyticsPage />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/billing" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <BillingPage />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <SettingsPage />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
+              {/* User Profile Route - Protected */}
+              <Route path="/user-profile" element={
+                <ProtectedRoute>
+                  <UserProfilePage />
+                </ProtectedRoute>
+              } />              {/* Dashboard redirect for authenticated users */}
+              <Route path="/dashboard-redirect" element={<Navigate to="/dashboard" replace />} />
 
-                {/* User Profile Route - Modal */}
-                <Route path="/user-profile" element={<UserProfilePage />} />
+              {/* 404 Fallback */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
 
-                {/* Redirect Root */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-                {/* 404 Fallback */}
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-
-              {/* Toast/Popup Notifications */}
-              <NotificationContainer />
-            </Router>
+            {/* Toast/Popup Notifications */}
+            <NotificationContainer />
           </NotificationProvider>
         </FilterProvider>
       </AuthProvider>

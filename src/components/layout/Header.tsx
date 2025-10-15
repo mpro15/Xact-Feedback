@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Menu, Bell, Search } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
-import { useAuth } from '../../contexts/AuthContext'; // Import useAuth to access user context
-import { UserProfileModal } from '../profile/UserProfileModal'; // Correct the import path for UserProfileModal
+import { TopRightProfileSection } from './Sidebar'; // Import TopRightProfileSection
 import { useFilters } from '../../contexts/FilterContext';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -12,27 +11,13 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { notifications } = useNotification();
-  const { user } = useAuth(); // Access user context
   const { filters, updateCandidateFilters } = useFilters();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State to manage profile modal open/close
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleIconClick = () => {
     setIsDropdownOpen((prev) => !prev);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDropdownOpen(false);
-  };
-
-  const handleProfileClick = () => {
-    setIsProfileModalOpen(true);
-  };
-
-  const handleProfileClose = () => {
-    setIsProfileModalOpen(false);
   };
 
   const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +41,22 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       setSearchResults([]);
     }
   };
+
+  React.useEffect(() => {
+    if (!isDropdownOpen) return;
+    const handleClick = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+    };
+  }, [isDropdownOpen]);
 
   return (
     <header className="neumorphic-header h-20 lg:border-l lg:border-shadow/20">
@@ -89,13 +90,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </div>
         </div>
 
-        <div className="flex items-center space-x-4 relative">
-          <div
-            className="relative"
-            onMouseLeave={handleMouseLeave}
-          >
+        <div className="flex items-center space-x-10"> {/* Adjusted space-x to 10 for more spacing */}
+          <div className="relative flex-shrink-0 w-12 h-12"> {/* Reduced area for notification button */}
             <button
-              className="neumorphic-btn p-3 relative"
+              className="neumorphic-btn p-3 relative w-full h-full"
               onClick={handleIconClick}
             >
               <Bell className="w-5 h-5 text-gray-600" />
@@ -132,26 +130,11 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             )}
           </div>
 
-          {/* User Name and Icon */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={handleProfileClick}>
-            <div className="w-10 h-10 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full shadow-neumorphic-sm flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">
-                {user?.name?.charAt(0) || 'U'}
-              </span>
-            </div>
-            <span className="text-sm font-semibold text-gray-800">
-              {user?.name || 'User'}
-            </span>
+          <div className="flex items-center flex-shrink-0 w-12 h-12"> {/* User button area remains consistent */}
+            <TopRightProfileSection />
           </div>
         </div>
       </div>
-
-      {/* User Profile Modal */}
-      {isProfileModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <UserProfileModal isOpen={isProfileModalOpen} onClose={handleProfileClose} />
-        </div>
-      )}
     </header>
   );
 };

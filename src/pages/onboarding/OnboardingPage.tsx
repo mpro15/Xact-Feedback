@@ -1,145 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Upload, Palette, Mail, CheckCircle } from 'lucide-react';
+import { CheckCircle, Building, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { supabase } from '../../lib/supabaseClient';
 
 export const OnboardingPage: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    logo: null as File | null,
-    primaryColor: '#2563EB',
-    secondaryColor: '#059669',
-    emailSender: '',
-    emailSignature: ''
+    companyName: '',
+    role: ''
   });
 
-  const { user, updateUser } = useAuth();
-  const { updateTheme } = useTheme();
+  const { user } = useAuth();
   const { addNotification } = useNotification();
   const navigate = useNavigate();
 
-  // Enterprise: Redirect if already onboarded
+  // Redirect if already onboarded
   useEffect(() => {
-    if (user?.isOnboarded) {
+    if (user?.is_onboarded) {
       navigate('/dashboard');
       return;
     }
   }, [user, navigate]);
 
-  const steps = [
-    { id: 1, title: 'Company Branding', icon: Palette },
-    { id: 2, title: 'Email Configuration', icon: Mail },
-    { id: 3, title: 'Setup Complete', icon: CheckCircle }
-  ];
-
-  const validateForm = () => {
-    if (!formData.primaryColor || !formData.secondaryColor) {
-      return 'Branding colors are required.';
-    }
-    if (!formData.logo) {
-      return 'Company logo is required.';
-    }
-    if (!formData.emailSender || formData.emailSender.length < 2) {
-      return 'Sender name is required.';
-    }
-    if (!formData.emailSignature || formData.emailSignature.length < 2) {
-      return 'Email signature is required.';
-    }
-    if (formData.logo && formData.logo.size > 2 * 1024 * 1024) {
-      return 'Logo file size must be less than 2MB.';
-    }
-    return null;
-  };
-
-  const handleNext = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleComplete = async () => {
-    setIsLoading(true);
-    try {
-      if (!user || !user.id) {
-        throw new Error('User not found. Please log in again.');
-      }
-      console.log('Passed stage: User not found. Please log in again.');
-      // Validate all form fields
-      const validationError = validateForm();
-      if (validationError) {
-        throw new Error(validationError);
-      }
-      console.log('Passed stage: Form validation successful.');
-      // Upload logo to Supabase Storage (if needed)
-      let logoUrl = user.logoUrl || '';
-      if (formData.logo) {
-        const fileExt = formData.logo.name.split('.').pop();
-        const fileName = `${user.id}/logo.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('company-logos')
-          .upload(fileName, formData.logo, { upsert: true });
-        if (uploadError) {
-          console.error('[OnboardingPage] Error uploading logo:', uploadError);
-          throw uploadError;
-        }
-        logoUrl = `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/company-logos/${fileName}`;
-      }
-      console.log('Passed stage: Logo uploaded successfully:', logoUrl);
-      // Update theme (only known properties)
-      updateTheme({
-        primaryColor: formData.primaryColor,
-        secondaryColor: formData.secondaryColor,
-        companyName: user?.companyName || 'Your Company'
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'User not found. Please log in again.'
       });
-      console.log('Passed stage: Theme updated successfully.');
-      // Update user onboarding status and branding in Supabase
+      return;
+    }
+
+    if (!formData.companyName.trim()) {
+      addNotification({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Company name is required.'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Update user profile with onboarding completion
       const { error: updateError } = await supabase
         .from('users')
         .update({
-          isOnboarded: true,
-          logoUrl,
-          emailSender: formData.emailSender,
-          emailSignature: formData.emailSignature
+          is_onboarded: true,
+          role: formData.role || 'User'
         })
         .eq('id', user.id);
-      console.log('Passed stage: User onboarding status updated in Supabase.');
+
       if (updateError) {
-        console.error('[OnboardingPage] Error updating user:', updateError);
         throw updateError;
       }
-      // Refetch user profile from Supabase to ensure context is up-to-date
-      const { data: profile, error: fetchError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      console.log('[OnboardingPage] Fetched updated user profile:', profile);
-      if (fetchError || !profile) {
-        console.error('[OnboardingPage] Error fetching updated user profile:', fetchError);
-        throw fetchError || new Error('Failed to fetch updated user profile.');
+
+      // If user is admin, update or create company record
+      if (user.account_type === 'admin' && user.company_id) {
+        const { error: companyError } = await supabase
+          .from('companies')
+          .update({
+            name: formData.companyName
+          })
+          .eq('id', user.company_id);
+
+        if (companyError) {
+          console.error('Error updating company:', companyError);
+          // Don't fail the onboarding if company update fails
+        }
       }
-      updateUser({ ...profile });
-      console.log('[OnboardingPage] User profile updated in context:', profile);
+
       addNotification({
         type: 'success',
         title: 'Setup Complete',
         message: 'Your account is now ready to use!'
       });
-      console.log('[OnboardingPage] Onboarding completed for user:', user.id);
+
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('[OnboardingPage] Setup Failed:', error);
+      console.error('Onboarding error:', error);
       addNotification({
         type: 'error',
         title: 'Setup Failed',
@@ -150,210 +96,116 @@ export const OnboardingPage: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData(prev => ({ ...prev, logo: file }));
-    }
-  };
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Company Branding</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Customize your company's branding for feedback emails and PDFs.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company Logo
-              </label>
-              <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 mb-4 text-gray-500" />
-                    <p className="mb-2 text-sm text-gray-500">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500">PNG, JPG or SVG (MAX. 2MB)</p>
-                  </div>
-                  <input
-                    type="file"
-                    data-cy="logo-upload"
-                    className={typeof window !== 'undefined' && (window as any).Cypress ? "" : "hidden"}
-                    accept=".png,.jpg,.jpeg,.svg"
-                    onChange={handleFileUpload}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Primary Color
-                </label>
-                <input
-                  type="color"
-                  data-cy="primary-color"
-                  value={formData.primaryColor}
-                  onChange={(e) => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
-                  className="w-full h-10 rounded border border-gray-300"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Secondary Color
-                </label>
-                <input
-                  type="color"
-                  data-cy="secondary-color"
-                  value={formData.secondaryColor}
-                  onChange={(e) => setFormData(prev => ({ ...prev, secondaryColor: e.target.value }))}
-                  className="w-full h-10 rounded border border-gray-300"
-                />
-              </div>
-            </div>
-          </div>
-        );
-      
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Email Configuration</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Configure how feedback emails will be sent to candidates.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sender Name
-              </label>
-              <input
-                type="text"
-                data-cy="email-sender"
-                value={formData.emailSender}
-                onChange={(e) => setFormData(prev => ({ ...prev, emailSender: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="HR Team"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Signature
-              </label>
-              <textarea
-                data-cy="email-signature"
-                value={formData.emailSignature}
-                onChange={(e) => setFormData(prev => ({ ...prev, emailSignature: e.target.value }))}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Best regards,&#10;HR Team&#10;Your Company"
-              />
-            </div>
-          </div>
-        );
-      
-      case 3:
-        return (
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Setup Complete!</h3>
-              <p className="text-sm text-gray-600">
-                Your account is now configured and ready to use. You can always update these settings later.
-              </p>
-            </div>
-          </div>
-        );
-      
-      default:
-        return (
-          <div className="text-center text-red-600 font-bold p-8">Invalid onboarding step: {currentStep}</div>
-        );
-    }
-  };
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="flex justify-center">
-            <MessageSquare className="w-12 h-12 text-blue-600" />
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center">
+          <div className="bg-blue-600 p-3 rounded-full">
+            <CheckCircle className="h-8 w-8 text-white" />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Welcome to Xact Feedback
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Let's set up your account in just a few steps
-          </p>
         </div>
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+          Complete Your Setup
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Just a few more details to get you started
+        </p>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* Progress Steps */}
-          <div className="flex items-center justify-between mb-8">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  currentStep >= step.id 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {currentStep > step.id ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <span className="text-sm font-medium">{step.id}</span>
-                  )}
-                </div>
-                {index < steps.length - 1 && (
-                  <div className={`w-16 h-1 mx-2 ${
-                    currentStep > step.id ? 'bg-blue-600' : 'bg-gray-200'
-                  }`} />
-                )}
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Account Type Display */}
+            <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+              {user.account_type === 'admin' ? (
+                <Building className="h-5 w-5 text-blue-600" />
+              ) : (
+                <User className="h-5 w-5 text-blue-600" />
+              )}
+              <div>
+                <p className="text-sm font-medium text-blue-900">
+                  {user.account_type === 'admin' ? 'Company Administrator' : 'Team Member'}
+                </p>
+                <p className="text-xs text-blue-600">
+                  {user.account_type === 'admin' 
+                    ? 'You can manage your company settings and team members'
+                    : 'You have access to company feedback tools'
+                  }
+                </p>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* Step Content */}
-          {renderStep()}
+            {/* Company Name */}
+            <div>
+              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
+                {user.account_type === 'admin' ? 'Company Name' : 'Your Company'}
+              </label>
+              <div className="mt-1">
+                <input
+                  id="companyName"
+                  name="companyName"
+                  type="text"
+                  required
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  className="block w-full appearance-none rounded-lg border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                  placeholder="Enter company name"
+                />
+              </div>
+            </div>
 
-          {/* Navigation */}
-          <div className="flex justify-between mt-8">
-            <button
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            
-            {currentStep < steps.length ? (
+            {/* Role */}
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                Your Role
+              </label>
+              <div className="mt-1">
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="block w-full appearance-none rounded-lg border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select your role</option>
+                  <option value="CEO">CEO</option>
+                  <option value="CTO">CTO</option>
+                  <option value="HR Manager">HR Manager</option>
+                  <option value="Recruiter">Recruiter</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Team Lead">Team Lead</option>
+                  <option value="Developer">Developer</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div>
               <button
-                onClick={handleNext}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={handleComplete}
+                type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full justify-center rounded-lg border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? <LoadingSpinner size="small" /> : 'Complete Setup'}
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="small" />
+                    <span className="ml-2">Setting up...</span>
+                  </>
+                ) : (
+                  'Complete Setup'
+                )}
               </button>
-            )}
-          </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+        input, button { padding: 10px; margin: 5px; width: 100%; box-sizing: border-box; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h2>🔐 Quick Login Test</h2>
+    <p>Testing login with local environment</p>
+    
+    <form id="testForm">
+        <input type="email" id="email" value="simple@test.com" placeholder="Email" required>
+        <input type="password" id="password" value="simple123" placeholder="Password" required>
+        <button type="submit">🚀 Test Login</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <p><a href="http://localhost:5175/login" target="_blank">→ Open Main App Login</a></p>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js';
+        
+        // Use local Supabase instance
+        const supabase = createClient(
+            'http://127.0.0.1:54321',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+        );
+
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            result.innerHTML = '<div class="result">🔄 Testing login...</div>';
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    result.innerHTML = `<div class="result error">❌ Login failed: ${error.message}</div>`;
+                    return;
+                }
+                
+                result.innerHTML = `
+                    <div class="result success">
+                        ✅ Login successful!<br>
+                        👤 User: ${data.user.email}<br>
+                        🎯 Token: ${data.session.access_token.substring(0, 20)}...<br>
+                        📍 Now try the main app!
+                    </div>
+                `;
+                
+                // Auto open main app after 2 seconds
+                setTimeout(() => {
+                    window.open('http://localhost:5175/login', '_blank');
+                }, 2000);
+                
+            } catch (err) {
+                result.innerHTML = `<div class="result error">❌ Error: ${err.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>

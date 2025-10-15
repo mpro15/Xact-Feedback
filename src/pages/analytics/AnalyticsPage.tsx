@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Mail, Eye, MousePointer, Users } from 'lucide-react';
 import { MetricCard } from '../../components/analytics/MetricCard';
 import { PerformanceTable } from '../../components/analytics/PerformanceTable';
-import { WorldMap } from '../../components/analytics/WorldMap';
+import { TimeSeriesChart } from '../../components/analytics/TimeSeriesChart';
 import { supabase } from '../../lib/supabaseClient';
 import {
   ResponsiveContainer,
@@ -167,9 +167,8 @@ export const AnalyticsPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <WorldMap />
+          </div>        </div>
+        <TimeSeriesChart />
       </div>
       {/* Performance Table */}
       <PerformanceTable chartData={stats.chartData} />

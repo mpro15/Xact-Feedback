@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css'; // Tailwind or global styles
+import { BrowserRouter as Router } from 'react-router-dom';
 
 // Optional: Setup for environment checks or debugging
 if (import.meta.env.DEV) {
@@ -17,6 +18,8 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
+    <Router>
+      <App />
+    </Router>
   </React.StrictMode>
 );

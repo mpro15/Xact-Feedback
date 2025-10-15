@@ -23,12 +23,14 @@ export const SupportLoginPage: React.FC = () => {
     setError('');
     try {
       // Capture support agent login event
-      const location = await fetch('https://ipapi.co/json/').then(res => res.json());
+      const { city, country_name } = await supabase
+        .rpc('get_location_info') // You may need to create this function or use a public API
+        .then(({ data }) => data || {});
       await supabase.from('support_logins').insert({
         email,
         company_id: companyId,
         login_time: new Date().toISOString(),
-        location: location.city + ', ' + location.country_name
+        location: city + ', ' + country_name
       });
       // Set session as support agent for selected company (custom logic)
       // You may need to use a service role or custom JWT for this

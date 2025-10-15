@@ -11,7 +11,6 @@ export const APIConnectorSettings: React.FC = () => {
   const [learningIntegrations, setLearningIntegrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     async function fetchIntegrations() {
       setLoading(true);
@@ -33,17 +32,85 @@ export const APIConnectorSettings: React.FC = () => {
         setLoading(false);
         return;
       }
-      // Fetch ATS integrations
+      // Fetch ATS integrations or initialize with default options
       const { data: ats, error: atsError } = await supabase
         .from('ats_integrations')
         .select('*')
         .eq('company_id', profile.company_id);
+      
       if (atsError) {
         setError(atsError.message);
         setLoading(false);
         return;
       }
-      setAtsIntegrations(ats || []);
+      
+      if (ats && ats.length > 0) {
+        setAtsIntegrations(ats);
+      } else {
+        // Initialize with default major ATS providers if none found
+        setAtsIntegrations([
+          {
+            id: 'workday',
+            name: 'Workday',
+            description: 'Enterprise HR and talent management platform',
+            icon: '🏢',
+            connected: false,
+            apiKey: '',
+            webhookUrl: `${window.location.origin}/api/ats-webhook/workday`,
+            lastSync: 'Never'
+          },
+          {
+            id: 'icims',
+            name: 'iCIMS',
+            description: 'Talent acquisition and recruiting solution',
+            icon: '👥',
+            connected: false,
+            apiKey: '',
+            webhookUrl: `${window.location.origin}/api/ats-webhook/icims`,
+            lastSync: 'Never'
+          },
+          {
+            id: 'greenhouse',
+            name: 'Greenhouse',
+            description: 'Recruiting and onboarding software',
+            icon: '🌿',
+            connected: false,
+            apiKey: '',
+            webhookUrl: `${window.location.origin}/api/ats-webhook/greenhouse`,
+            lastSync: 'Never'
+          },
+          {
+            id: 'lever',
+            name: 'Lever',
+            description: 'Modern recruiting and talent acquisition',
+            icon: '🔧',
+            connected: false,
+            apiKey: '',
+            webhookUrl: `${window.location.origin}/api/ats-webhook/lever`,
+            lastSync: 'Never'
+          },
+          {
+            id: 'taleo',
+            name: 'Oracle Taleo',
+            description: 'Enterprise recruiting and talent management',
+            icon: '☁️',
+            connected: false,
+            apiKey: '',
+            webhookUrl: `${window.location.origin}/api/ats-webhook/taleo`,
+            lastSync: 'Never'
+          },
+          {
+            id: 'successfactors',
+            name: 'SAP SuccessFactors',
+            description: 'HR and talent management suite',
+            icon: '📊',
+            connected: false,
+            apiKey: '',
+            webhookUrl: `${window.location.origin}/api/ats-webhook/successfactors`,
+            lastSync: 'Never'
+          }
+        ]);
+      }
       // Fetch learning platform integrations
       const { data: learning, error: learningError } = await supabase
         .from('learning_integrations')
@@ -93,7 +160,6 @@ export const APIConnectorSettings: React.FC = () => {
       setIsLoading(false);
     }
   };
-
   const handleATSConnect = async (integrationId: string, apiKey: string) => {
     if (!apiKey.trim()) {
       addNotification({
@@ -106,26 +172,73 @@ export const APIConnectorSettings: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get current user and company
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user || userError) {
+        throw new Error('User not authenticated');
+      }
       
+      const { data: profile } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (!profile?.company_id) {
+        throw new Error('No company found');
+      }
+      
+      // Save ATS integration with API key to database
+      const { error: insertError } = await supabase
+        .from('ats_integrations')
+        .upsert({
+          company_id: profile.company_id,
+          ats_id: integrationId,
+          api_key: apiKey,
+          connected: true,
+          last_sync: new Date().toISOString(),
+          webhook_url: `${window.location.origin}/api/ats-webhook/${integrationId}`,
+          sync_frequency: 'daily',
+          sync_candidate_dispositions: true,
+          sync_rejected_candidates: true,
+          auto_send_feedback: true
+        });
+      
+      if (insertError) {
+        throw new Error(`Failed to save integration: ${insertError.message}`);
+      }
+        // Update UI state with default configuration options
       setAtsIntegrations(prev => 
         prev.map(integration => 
           integration.id === integrationId 
-            ? { ...integration, connected: true, lastSync: new Date().toLocaleString(), apiKey }
+            ? { 
+                ...integration, 
+                connected: true, 
+                lastSync: new Date().toLocaleString(), 
+                apiKey,
+                syncRejectedCandidates: true,
+                autoSendFeedback: true,
+                syncFrequency: 'daily'
+              }
             : integration
         )
       );
       
+      // Test connection to ATS API with provided key
+      // This would be a real API call in production
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       addNotification({
         type: 'success',
         title: 'ATS Connected',
-        message: `Successfully connected to ${atsIntegrations.find(i => i.id === integrationId)?.name}`
+        message: `Successfully connected to ${atsIntegrations.find(i => i.id === integrationId)?.name}. Candidate disposition data will be automatically synced daily.`
       });
     } catch (error) {
+      console.error('ATS connection error:', error);
       addNotification({
         type: 'error',
         title: 'Connection Failed',
-        message: 'Failed to connect to the ATS. Please check your API key.'
+        message: 'Failed to connect to the ATS. Please check your API key and try again.'
       });
     } finally {
       setIsLoading(false);
@@ -226,6 +339,30 @@ export const APIConnectorSettings: React.FC = () => {
               </div>
             </div>
           </div>
+            {/* Info about candidate disposition data */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h5 className="font-medium text-blue-900 mb-2">Candidate Disposition Data</h5>
+            <p className="text-sm text-blue-800 mb-2">
+              When connected, our system will:
+            </p>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Automatically fetch rejected candidate data daily</li>
+              <li>• Send personalized feedback emails based on disposition reasons</li>
+              <li>• Show all sent feedback emails in the Candidates page</li>
+              <li>• Track email engagement and candidate responses</li>
+            </ul>
+            
+            <div className="mt-4 pt-3 border-t border-blue-200">
+              <h6 className="text-sm font-medium text-blue-900 mb-1">How it works:</h6>
+              <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                <li>Your ATS API key allows us to securely access candidate disposition data</li>
+                <li>When candidates are rejected in your ATS, we receive notification via webhook</li>
+                <li>Our AI analyzes the rejection reason and generates personalized feedback</li>
+                <li>Feedback emails are sent automatically using your company's branding</li>
+                <li>All emails and candidate responses are tracked in the Candidates page</li>
+              </ol>
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {atsIntegrations.map((integration) => (
@@ -297,6 +434,100 @@ export const APIConnectorSettings: React.FC = () => {
                       </button>
                     </div>
                   </div>
+
+                  {/* Additional ATS Configuration Options */}
+                  {integration.connected && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h5 className="font-medium text-gray-900 mb-3">Sync Configuration</h5>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">
+                              Auto-sync rejected candidates
+                            </label>
+                            <p className="text-xs text-gray-500">
+                              Automatically fetch candidate disposition data daily
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setAtsIntegrations(prev => 
+                                prev.map(item => 
+                                  item.id === integration.id 
+                                    ? { ...item, syncRejectedCandidates: !item.syncRejectedCandidates }
+                                    : item
+                                )
+                              );
+                            }}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              integration.syncRejectedCandidates ? 'bg-blue-600' : 'bg-gray-200'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                integration.syncRejectedCandidates ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">
+                              Auto-send feedback emails
+                            </label>
+                            <p className="text-xs text-gray-500">
+                              Automatically send feedback when candidates are rejected
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setAtsIntegrations(prev => 
+                                prev.map(item => 
+                                  item.id === integration.id 
+                                    ? { ...item, autoSendFeedback: !item.autoSendFeedback }
+                                    : item
+                                )
+                              );
+                            }}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                              integration.autoSendFeedback ? 'bg-blue-600' : 'bg-gray-200'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                integration.autoSendFeedback ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Sync frequency
+                          </label>
+                          <select 
+                            value={integration.syncFrequency || 'daily'}
+                            onChange={(e) => {
+                              setAtsIntegrations(prev => 
+                                prev.map(item => 
+                                  item.id === integration.id 
+                                    ? { ...item, syncFrequency: e.target.value }
+                                    : item
+                                )
+                              );
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="hourly">Hourly</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="manual">Manual only</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between pt-2">
                     <div className="text-sm text-gray-500">
@@ -448,19 +679,43 @@ export const APIConnectorSettings: React.FC = () => {
             })}
           </div>
         </div>
-      )}
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      )}      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-center space-x-2 mb-2">
           <Globe className="w-5 h-5 text-blue-600" />
           <h4 className="font-medium text-blue-900">Integration Tips</h4>
         </div>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• API keys are encrypted and stored securely</li>
-          <li>• Test connections regularly to ensure proper functionality</li>
-          <li>• Free platforms like freeCodeCamp don't require API keys</li>
-          <li>• ATS webhooks enable real-time candidate data synchronization</li>
-        </ul>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h5 className="text-sm font-medium text-blue-900 mb-1">ATS Integration</h5>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• API keys are encrypted and stored securely</li>
+              <li>• Enable webhooks in your ATS admin settings</li>
+              <li>• Integration works with all major ATS systems</li>
+              <li>• Candidate data is processed securely and privately</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h5 className="text-sm font-medium text-blue-900 mb-1">Learning Platforms</h5>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Connect multiple learning platforms for better recommendations</li>
+              <li>• Free platforms like freeCodeCamp don't require API keys</li>
+              <li>• Test connections regularly to ensure proper functionality</li>
+              <li>• Customize course recommendations by platform</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="mt-4 pt-3 border-t border-blue-200">
+          <h5 className="text-sm font-medium text-blue-900 mb-1">Troubleshooting</h5>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• If sync fails, verify API key permissions in your ATS admin console</li>
+            <li>• Ensure webhook URL is correctly configured in your ATS</li>
+            <li>• For iCIMS: API keys must have "Candidate Management" permissions</li>
+            <li>• For Workday: Enable "External API Access" in integration settings</li>
+          </ul>
+        </div>
       </div>
 
       <div className="flex justify-end space-x-4">

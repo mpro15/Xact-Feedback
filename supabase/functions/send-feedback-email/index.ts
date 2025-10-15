@@ -1,6 +1,5 @@
 import { serve } from 'https://deno.land/x/supabase_functions@0.5.0/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SMTPClient } from 'npm:emailjs@3.2.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -87,18 +86,7 @@ export default serve(async (req: Request) => {
 
     if (companyError) {
       throw new Error(`Failed to get company settings: ${companyError.message}`)
-    }
-
-    // Get SMTP configuration from environment variables or company settings
-    const smtpConfig = {
-      host: Deno.env.get('SMTP_HOST') || company.settings?.smtp?.host || 'localhost',
-      port: parseInt(Deno.env.get('SMTP_PORT') || company.settings?.smtp?.port || '25'),
-      user: Deno.env.get('SMTP_USER') || company.settings?.smtp?.user || '',
-      password: Deno.env.get('SMTP_PASSWORD') || company.settings?.smtp?.password || '',
-      ssl: Deno.env.get('SMTP_SSL') === 'true' || company.settings?.smtp?.ssl === true,
-    }
-
-    // Get sender information
+    }    // Get sender information
     const fromName = company.settings?.email?.sender_name || 'HR Team'
     const fromEmail = company.settings?.email?.sender_email || `hr@${company.name.toLowerCase().replace(/\s+/g, '')}.com`
 
@@ -137,32 +125,40 @@ export default serve(async (req: Request) => {
         
         return `<a href="${trackingUrl}"${rest}>`
       }
-    )
+    )    // Use Supabase's built-in email service
+    // Send the email using Supabase's built-in email service
+    const emailResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''}`,
+      },
+      body: JSON.stringify({
+        email: emailRequest.to_email,
+        subject: emailRequest.subject,
+        template_data: {
+          name: emailRequest.to_name,
+          content: htmlWithTracking,
+          pdf_url: emailRequest.pdf_url,
+          company_name: company.name
+        },
+        data: {
+          name: emailRequest.to_name,
+          content: htmlWithTracking,
+          pdf_url: emailRequest.pdf_url,
+        },
+        template: 'feedback-email'
+      })
+    });
 
-    // Initialize SMTP client
-    const smtp = new SMTPClient({
-      host: smtpConfig.host,
-      port: smtpConfig.port,
-      user: smtpConfig.user,
-      password: smtpConfig.password,
-      ssl: smtpConfig.ssl,
-    })
+    if (!emailResponse.ok) {
+      const errorData = await emailResponse.json();
+      throw new Error(`Supabase email service error: ${JSON.stringify(errorData)}`);
+    }
 
-    // Send the email
-    const message = await smtp.send({
-      from: `${fromName} <${fromEmail}>`,
-      to: `${emailRequest.to_name} <${emailRequest.to_email}>`,
-      subject: emailRequest.subject,
-      text: emailRequest.text_content,
-      html: htmlWithTracking,
-      attachment: emailRequest.pdf_url ? [
-        {
-          path: emailRequest.pdf_url,
-          type: 'application/pdf',
-          name: 'feedback-report.pdf'
-        }
-      ] : []
-    })
+    // Get message ID from response
+    const message = { id: `xact-${emailId}` };
 
     // Log successful delivery
     await supabaseClient

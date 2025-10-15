@@ -1,13 +1,12 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import BillingPage from '../pages/billing/BillingPage';
-import { supabase } from '../lib/supabaseClient';
+import { describe, it, expect, vi } from 'vitest';
+import { BillingPage } from '../pages/billing/BillingPage';
 
 // Mock create_order Edge Function
-jest.mock('../lib/supabaseClient', () => ({
+vi.mock('../lib/supabaseClient', () => ({
   supabase: {
     functions: {
-      invoke: jest.fn((fn, { body }) => {
+      invoke: vi.fn((fn, { body }) => {
         if (fn === 'create_order') {
           return Promise.resolve({ data: { order_id: 'order_123', key_id: 'rzp_test_key' }, error: null });
         }
@@ -17,9 +16,9 @@ jest.mock('../lib/supabaseClient', () => ({
         return Promise.resolve({ data: {}, error: null });
       }),
     },
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({ eq: jest.fn(() => ({ single: jest.fn(() => Promise.resolve({ data: { subscription_active: true }, error: null }) ) })) })),
-      update: jest.fn(() => Promise.resolve({ data: [{}], error: null })),
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ single: vi.fn(() => Promise.resolve({ data: { subscription_active: true }, error: null }) ) })) })),
+      update: vi.fn(() => Promise.resolve({ data: [{}], error: null })),
     })),
   },
 }));
@@ -40,7 +39,8 @@ describe('Razorpay Subscription Flow', () => {
     await waitFor(() => expect(screen.getByText(/Payment successful/)).toBeInTheDocument());
 
     // Assert subscription_active flips to true in DB
-    const { data } = await supabase.from('companies').select('subscription_active').eq('email', 'test@co.com').single();
-    expect(data.subscription_active).toBe(true);
+    const mockSupabase = await import('../lib/supabaseClient');
+    const result = await mockSupabase.supabase.from('companies').select('subscription_active').eq('email', 'test@co.com').single();
+    expect(result.data?.subscription_active).toBe(true);
   });
 });
