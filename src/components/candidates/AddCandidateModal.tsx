@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Candidate } from '../../lib/supabase';
 import { AlertCircle, CheckCircle, User } from 'lucide-react';
@@ -23,6 +23,17 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, on
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Lock body scroll while modal is open
+    if (isOpen) {
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = previousOverflow || '';
+      };
+    }
+  }, [isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -125,8 +136,8 @@ export const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6">
+      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[calc(100vh-4rem)] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Add New Candidate</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">&times;</button>
