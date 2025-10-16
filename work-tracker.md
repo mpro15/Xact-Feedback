@@ -3,7 +3,8 @@
 | Work               | Sub-Item                                                                 | State       | Priority | Estimated Time | Due Date   |
 |--------------------|--------------------------------------------------------------------------|-------------|----------|----------------|------------|
 | Profile Section    | Fix issue where uploading a photo vanishes on reload                     |    Done         | Medium   | 2 hours        |            |
-|                    | Fix the email change capability by the user                              | Pending  | High |  2 hours |
+|                    | Fix the email change capability by the user                              | Not Allowed by design   | High |  2 hours |
+|                    | Fix the profile change capability by the user                            | Done   | High |  2 hours |
 | Candidates Page    | Resolve errors in candidate upload functionality                         | Done (did not repro)            | High     | 3 hours        |            |
 |                    | Resolve errors in bulk candidate upload functionality                    | Done (did not repro)            | High     | 3 hours        |            |
 |                    | Copy the UI for the recent candidates section from the dashboard page    | Done        | Medium   | 4 hours        |            |
@@ -24,7 +25,7 @@
 | Analytics Page                           | Ensure all cards display unique tables instead of the same table |        | Medium   | 4 hours        |            |
 |                                          | Improve the UI for rejection state distribution to be more graphic and visually appealing | Done       | Medium   | 3 hours        |            |
 |                                          | Enable clicking on the rejection state chart to show candidates |    Done    | Medium   | 3 hours        |            |
-|                                          | Fix errors related to country code |        | Medium   | 2 hours        |            |
+|                                          | Fix errors related to country code | NA      | Medium   | 2 hours        |            |
 |                                          | Populate the rejection state field in the "Performance by Rejection State" chart |    Done    | Medium   | 3 hours        |            |
 |                                          | Ensure the filter works in the rejection state chart |  Done      | High     | 3 hours        |            |
 | Billing Page                             | Ensure the "Top Up" button redirects to the payment gateway |        | High     | 3 hours        |            |

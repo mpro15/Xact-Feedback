@@ -61,7 +61,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
   if (!isOpen) return null;
 
-  const allowedRoles = ['HR Director', 'Recruiter', 'Manager', 'Employee']; // Add all valid roles here
+  const allowedRoles = ['admin', 'recruiter', 'manager']; // Add all valid roles here
 
   const handleSave = async () => {
     setIsLoading(true);
