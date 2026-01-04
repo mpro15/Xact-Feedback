@@ -3,8 +3,6 @@
 ## Summary: Not Done Items
 | Work | Sub-Item | Priority | Estimated Time |
 |------|----------|----------|----------------|
-| Profile Section | Fix issue where uploading a photo vanishes on reload | Medium | 2 hours |
-|  | Profile logo remains open once open | Medium | 2 hours |
 | View Candidate Modal | Generate AI feedback using OpenAI API key instead of mock data | High | 5 hours |
 |  | Ensure email preview, edit, and send buttons work | High | 4 hours |
 |  | Replace mock analytics data with real data | High | 4 hours |
@@ -45,6 +43,8 @@
 |  | Remove email configuration settings | Medium | 2 hours |
 | Header Section | Fix the profile icon functionality in the top-right header section | Medium | 2 hours |
 | Onboarding Page | Resolve issues preventing the onboarding page from functioning | High | 4 hours |
+| Profile Section | Fix issue where uploading a photo vanishes on reload | Medium | 2 hours |
+| | Profile logo remains open once open | Medium | 15 mins |
 
 ---
 

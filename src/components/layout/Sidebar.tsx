@@ -85,21 +85,30 @@ const TopRightProfileSection: React.FC = () => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const navigate = useNavigate();
 
+  // Helper to close dropdown
+  const closeDropdown = () => setIsDropdownOpen(false);
+
   return (
     <div className="absolute top-0 right-0 p-4 flex items-center space-x-4 z-50" style={{ overflow: 'visible' }}>
       <button
         className="neumorphic-btn flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-primary-700"
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        onClick={() => setIsDropdownOpen((open) => !open)}
       >
         <User className="w-4 h-4" />
         <span>User</span>
       </button>
 
       {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50">
+        <div
+          className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50"
+          onMouseLeave={closeDropdown}
+        >
           <button
             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            onClick={() => setIsProfileModalOpen(true)}
+            onClick={() => {
+              setIsProfileModalOpen(true);
+              closeDropdown();
+            }}
           >
             Profile
           </button>
@@ -107,6 +116,7 @@ const TopRightProfileSection: React.FC = () => {
             className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100"
             onClick={async () => {
               await logout();
+              closeDropdown();
               navigate('/login');
             }}
           >
