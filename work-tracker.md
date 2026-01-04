@@ -4,6 +4,7 @@
 | Work | Sub-Item | Priority | Estimated Time |
 |------|----------|----------|----------------|
 | Profile Section | Fix issue where uploading a photo vanishes on reload | Medium | 2 hours |
+|  | Profile logo remains open once open | Medium | 2 hours |
 | View Candidate Modal | Generate AI feedback using OpenAI API key instead of mock data | High | 5 hours |
 |  | Ensure email preview, edit, and send buttons work | High | 4 hours |
 |  | Replace mock analytics data with real data | High | 4 hours |
