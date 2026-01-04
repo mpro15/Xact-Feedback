@@ -3,25 +3,28 @@
 ## Summary: Not Done Items
 | Work | Sub-Item | Priority | Estimated Time |
 |------|----------|----------|----------------|
-| View Candidate Modal | Generate AI feedback using OpenAI API key instead of mock data | High | 5 hours |
-|  | Ensure email preview, edit, and send buttons work | High | 4 hours |
-|  | Replace mock analytics data with real data | High | 4 hours |
-|  | Add actions to buttons in the "Generate Feedback" section | Medium | 3 hours |
-|  | Remove settings from "Generate Feedback" or provide a link to the actual settings page | Medium | 2 hours |
-|  | Fix the "Download PDF" functionality | High | 3 hours |
+| View Candidate Modal | Replace mock analytics data with real data (previous mails too, list mail then show timeline)| High | 4 hours |
+|  | Add actions to buttons in the "Generate Feedback" section (this is inside mail, where should it take us? personalized?) | Medium | 3 hours |
+|  | Synchronize settings from "Generate Feedback" and actual settings (remove settings tab, add extyra fields in settngs page)| Medium | 2 hours |
+|  | template in settins page and actual template sync
+|  | Fix the "Download PDF" functionality (nothing gets downloaded) | High | 3 hours |
+|  | Fix issue where the generated PDF report seems dummy | Medium | 3 hours |
+|  | Generate AI feedback using OpenAI API key instead of mock data | High | 5 hours |
+|  | regenerate option in preview page only. no tab for edit ai feedback | | | 
+|  | Ensure mail send works ( with 3p integration) | High | 4 hours |
 | Analytics Page | Ensure all cards display unique tables instead of the same table | Medium | 4 hours |
-| Billing Page | Ensure the "Top Up" button redirects to the payment gateway | High | 3 hours |
-|  | Test credit usage functionality | High | 3 hours |
-|  | Test the payment gateway | High | 3 hours |
 | Settings Page | Fix issue where updating the company logo does not update the preview | Medium | 3 hours |
 |  | Ensure the "Update All Settings" button works correctly in Behavior Controls, Privacy, and ATS Integration sections | High | 4 hours |
 |  | Make the "Preview and Test" section similar to the candidate page's "Generate Feedback" interface | Medium | 3 hours |
-| Header Section | Ensure the search bar in the header works | High | 3 hours |
-| Email Integration | Implement email integration | High | 5 hours |
-| Reports | Fix issue where the generated PDF report seems dummy | Medium | 3 hours |
-| API Keys | Utilize OAI API key for integration | High | 4 hours |
+| Billing Page | Ensure the "Top Up" button redirects to the payment gateway | High | 3 hours |
+|  | Test credit usage functionality | High | 3 hours |
+|  | Test the payment gateway | High | 6 hours |
+| Common Layout | Ensure the search bar in the header works | High | 3 hours |
 | Notifications | Implement a flow to send notifications that will be visible in the header section's notification button | Medium | 3 hours |
 | Code Quality | Where to store secrets like open api key etc in supabase folder | High | 3 hours |
+| Deployment | Decide where to deploy MVP - vercel / aws/ azure | High | 2h |
+|  | Deploy MVP + get script / steps ready | High | 2h |
+|  | Ensure you're secure, not vulnerable | High | 2h |
 
 ## Summary: Done Items
 | Work | Sub-Item | Priority | Estimated Time |
@@ -31,6 +34,7 @@
 |  | Ensure the "Send Feedback" button works | High | 3 hours |
 |  | The popup for add candidate does not adjust to browser window size and there is no scroll | Low | 1 hours |
 |  | Fix issue where saving a candidate does not complete, even though the data is updated in the database | High | 2 hours |
+|  | Ensure shortcuts preview, edit, and send buttons work | High | 4 hours |
 | Dashboard Page | Clicking the top-left logo should navigate the user to the home page | Medium | 2 hours |
 |  | Clicking the cards should navigate the user to relevant pages | High | 3 hours |
 |  | Ensure the Performance Overview chart shows real data (indicate 0 or no data if applicable) | High | 4 hours |
