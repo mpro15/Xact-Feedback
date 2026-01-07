@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabaseClient';
 export const BehaviorSettings: React.FC = () => {
   const { addNotification } = useNotification();
   const [isLoading, setIsLoading] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     autoSendOnRejection: true,
     includePaidCourses: false,
@@ -19,11 +20,53 @@ export const BehaviorSettings: React.FC = () => {
     showSimilarJobs: true, // Setting for similar job suggestions
   });
 
+  // Fetch company ID and settings on mount
+  useEffect(() => {
+    async function fetchCompanyData() {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (!user || userError) return;
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+        if (profileError || !profile) return;
+        setCompanyId(profile.company_id);
+        // Fetch company settings and daily_email_limit
+        const { data: company, error: companyError } = await supabase
+          .from('companies')
+          .select('settings, daily_email_limit')
+          .eq('id', profile.company_id)
+          .single();
+        if (companyError || !company) return;
+        const emailSettings = company.settings?.email || {};
+        setSettings(prev => ({
+          ...prev,
+          autoSendOnRejection: emailSettings.auto_send ?? prev.autoSendOnRejection,
+          includePaidCourses: emailSettings.include_paid_courses ?? prev.includePaidCourses,
+          enableReApplicationLink: emailSettings.enable_reapplication ?? prev.enableReApplicationLink,
+          feedbackTone: emailSettings.feedback_tone ?? prev.feedbackTone,
+          batchSending: emailSettings.batch_sending ?? prev.batchSending,
+          sendDelay: emailSettings.send_delay_minutes ?? prev.sendDelay,
+          showSimilarJobs: emailSettings.show_similar_jobs ?? prev.showSimilarJobs,
+          maxCourseSuggestions: emailSettings.max_course_suggestions ?? prev.maxCourseSuggestions,
+          dailyEmailLimit: company.daily_email_limit ?? prev.dailyEmailLimit,
+          includeCompanyBranding: emailSettings.include_company_branding ?? prev.includeCompanyBranding // <-- FIXED: now loaded from DB
+        }));
+      } catch (e) {
+        // Optionally handle error
+      }
+    }
+    fetchCompanyData();
+  }, []);
+
   const handleSave = async () => {
     setIsLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-        // Update company settings in Supabase
+      if (!companyId) throw new Error('Company ID not found');
+      // Update company settings in Supabase
       const { error } = await supabase
         .from('companies')
         .update({
@@ -36,15 +79,14 @@ export const BehaviorSettings: React.FC = () => {
               batch_sending: settings.batchSending,
               send_delay_minutes: settings.sendDelay,
               show_similar_jobs: settings.showSimilarJobs,
-              max_course_suggestions: settings.maxCourseSuggestions
+              max_course_suggestions: settings.maxCourseSuggestions,
+              include_company_branding: settings.includeCompanyBranding // <-- FIXED: now included in payload
             }
           },
           daily_email_limit: settings.dailyEmailLimit
         })
-        .eq('id', 'current-company-id'); // This would be the actual company ID in production
-      
+        .eq('id', companyId);
       if (error) throw error;
-      
       addNotification({
         type: 'success',
         title: 'Settings Saved',

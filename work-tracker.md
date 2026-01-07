@@ -13,7 +13,8 @@
 |  | regenerate option in preview page only. no tab for edit ai feedback | | | 
 |  | Ensure mail send works ( with 3p integration) | High | 4 hours |
 | Analytics Page | Ensure all cards display unique tables instead of the same table | Medium | 4 hours |
-| Settings Page | Ensure the "Update All Settings" button works correctly in Behavior Controls, Privacy, and ATS Integration sections | High | 4 hours |
+| Settings Page | include company branding seems to toggle on page load | High | 4 hours |
+|  | Integrations sections in settings. | High | 4 hours |
 |  | Make the "Preview and Test" section similar to the candidate page's "Generate Feedback" interface | Medium | 3 hours |
 | Billing Page | Ensure the "Top Up" button redirects to the payment gateway | High | 3 hours |
 |  | Test credit usage functionality | High | 3 hours |
@@ -44,6 +45,7 @@
 |  | Ensure the filter works in the rejection state chart | High | 3 hours |
 | Settings Page | Remove the first section (including SMTP settings) | Medium | 2 hours |
 |  | Remove email configuration settings | Medium | 2 hours |
+|  | Ensure the "Update All Settings" button works correctly in Behavior Controls, Email and Branding sections | High | 4 hours |
 | Header Section | Fix the profile icon functionality in the top-right header section | Medium | 2 hours |
 | Onboarding Page | Resolve issues preventing the onboarding page from functioning | High | 4 hours |
 | Profile Section | Fix issue where uploading a photo vanishes on reload | Medium | 2 hours |
