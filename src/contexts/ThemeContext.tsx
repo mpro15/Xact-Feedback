@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 interface ThemeContextType {
@@ -31,6 +31,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     companyName: 'Xact Feedback',
     updateTheme: () => {}
   });
+
+  // Memoize updateTheme to ensure stable reference
+  const updateTheme = useCallback((updates: Partial<ThemeContextType>) => {
+    setTheme(prev => ({ ...prev, ...updates }));
+  }, []);
   
   // Load company theme settings on initial load
   useEffect(() => {
@@ -82,10 +87,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     
     loadCompanyTheme();
   }, []);
-
-  const updateTheme = (updates: Partial<ThemeContextType>) => {
-    setTheme(prev => ({ ...prev, ...updates }));
-  };
 
   return (
     <ThemeContext.Provider value={{ ...theme, updateTheme }}>
